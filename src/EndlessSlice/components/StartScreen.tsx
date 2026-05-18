@@ -7,33 +7,41 @@ interface Props {
   onOpenLeaderboard: () => void;
 }
 
-// Mini demo: a baguette with 6 slash marks appearing rapid-fire, with a finger
-// pulsing at each. Loops forever until first tap.
+// Mini demo: a tomato arcs up while a sweeping swipe-trail crosses it,
+// splitting it into two halves. Loops.
 function MiniDemo() {
   return (
     <div className="es-demo" aria-hidden>
-      <svg className="es-demo__svg" viewBox="0 0 360 130" preserveAspectRatio="xMidYMid meet">
+      <svg className="es-demo__svg" viewBox="0 0 360 200" preserveAspectRatio="xMidYMid meet">
         <defs>
-          <linearGradient id="es-demo-body" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#f4dca5"/>
-            <stop offset="55%" stopColor="#e8c885"/>
-            <stop offset="100%" stopColor="#a06f3a"/>
-          </linearGradient>
+          <radialGradient id="es-demo-tomato" cx="0.4" cy="0.4">
+            <stop offset="0%" stopColor="#ff7670"/>
+            <stop offset="100%" stopColor="#e23b3b"/>
+          </radialGradient>
         </defs>
-        {/* Board */}
-        <rect x="6" y="35" width="348" height="78" rx="10" fill="#7a5230"/>
-        <rect x="6" y="35" width="348" height="78" rx="10" fill="none" stroke="rgba(0,0,0,0.35)" strokeWidth="1.5"/>
-        {/* Baguette */}
-        <rect x="40" y="50" width="280" height="48" rx="24" fill="url(#es-demo-body)"/>
-        {/* Slash marks appearing in sequence */}
-        {[80, 120, 160, 200, 240, 280].map((x, i) => (
-          <line
-            key={x}
-            className={`es-demo__slash es-demo__slash--${i}`}
-            x1={x} y1="42" x2={x} y2="106"
-            stroke="#ffd24a" strokeWidth="3"
-          />
-        ))}
+        {/* Bomb decoy (won't be sliced in demo) */}
+        <circle className="es-demo__bomb" cx="280" cy="160" r="18" fill="#2a2a2e"/>
+        <line className="es-demo__fuse" x1="288" y1="146" x2="295" y2="132" stroke="#8a6b3a" strokeWidth="2.5" strokeLinecap="round"/>
+        <circle className="es-demo__spark" cx="297" cy="130" r="3" fill="#ffd24a"/>
+
+        {/* Tomato arcing up */}
+        <g className="es-demo__tomato">
+          <circle r="22" fill="url(#es-demo-tomato)"/>
+          <ellipse cx="0" cy="-22" rx="8" ry="4" fill="#3aa84a"/>
+        </g>
+
+        {/* Half pieces flying away */}
+        <g className="es-demo__half-l">
+          <path d="M -22 0 A 22 22 0 0 1 22 0 Z" fill="#e23b3b"/>
+          <ellipse cx="0" cy="0" rx="20" ry="6" fill="#ff9a8a"/>
+        </g>
+        <g className="es-demo__half-r">
+          <path d="M -22 0 A 22 22 0 0 1 22 0 Z" fill="#e23b3b"/>
+          <ellipse cx="0" cy="0" rx="20" ry="6" fill="#ff9a8a"/>
+        </g>
+
+        {/* Swipe trail */}
+        <path className="es-demo__trail" d="M 30 60 Q 180 140 320 80" fill="none" stroke="#fff" strokeWidth="4" strokeLinecap="round"/>
       </svg>
       <div className="es-demo__finger">
         <TouchAppIcon className="es-demo__finger-icon" />

@@ -39,14 +39,25 @@
   text-align: left;
   flex: 1;
   &--mid   { text-align: center; }
-  &--right { text-align: right; }
+  &--right { text-align: right; display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
 }
 
-.es-hud__sub {
-  font-size: 16px;
-  opacity: 0.55;
-  font-weight: 700;
-  margin-left: 2px;
+.es-hud__label--right { text-align: right; }
+
+.es-hud__lives {
+  display: flex;
+  gap: 4px;
+}
+.es-heart {
+  display: inline-block;
+  width: 22px;
+  height: 22px;
+  svg {
+    width: 100%;
+    height: 100%;
+  }
+  &--on svg path  { fill: #ff4a64; filter: drop-shadow(0 1px 3px rgba(255, 74, 100, 0.6)); }
+  &--off svg path { fill: rgba(255,255,255,0.18); }
 }
 
 .es-hud__label {
@@ -191,34 +202,78 @@
   height: auto;
 }
 
-// Each slash mark fades in at a staggered moment, all reset together at the loop boundary.
-.es-demo__slash {
-  opacity: 0;
-  filter: drop-shadow(0 0 4px #ffd24a);
-  animation: es-demo-slash 2.4s linear infinite;
-  &--0 { animation-delay: 0.10s; }
-  &--1 { animation-delay: 0.30s; }
-  &--2 { animation-delay: 0.50s; }
-  &--3 { animation-delay: 0.70s; }
-  &--4 { animation-delay: 0.90s; }
-  &--5 { animation-delay: 1.10s; }
+// Demo loop: 2.4s
+// 0.0–0.6s   tomato arcs up
+// 0.6–1.0s   trail sweeps across; tomato vanishes; halves appear at moment of cut
+// 1.0–2.0s   halves fly apart and fall
+// 2.0–2.4s   reset
+
+.es-demo__tomato {
+  transform: translate(30px, 160px);
+  animation: es-demo-tomato 2.4s linear infinite;
 }
-@keyframes es-demo-slash {
-  0%   { opacity: 0; transform: scaleY(1.4); }
-  4%   { opacity: 1; transform: scaleY(1.4); }
-  8%   { opacity: 1; transform: scaleY(1.0); }
-  // hold the cut visible until end of cycle
-  85%  { opacity: 1; transform: scaleY(1.0); }
-  100% { opacity: 0; transform: scaleY(1.0); }
+@keyframes es-demo-tomato {
+  0%   { transform: translate(30px, 200px); opacity: 1; }
+  35%  { transform: translate(180px, 70px); opacity: 1; }
+  41%  { transform: translate(195px, 75px); opacity: 1; }
+  42%  { opacity: 0; }
+  100% { opacity: 0; transform: translate(195px, 75px); }
 }
 
-// Finger jumps to each mark in time with the staggered slashes
+.es-demo__half-l, .es-demo__half-r {
+  opacity: 0;
+  transform: translate(195px, 75px);
+}
+.es-demo__half-l { animation: es-demo-half-l 2.4s ease-in infinite; }
+.es-demo__half-r { animation: es-demo-half-r 2.4s ease-in infinite; }
+@keyframes es-demo-half-l {
+  0%, 41%  { opacity: 0; transform: translate(195px, 75px) rotate(0deg); }
+  42%      { opacity: 1; transform: translate(195px, 75px) rotate(-20deg); }
+  90%      { opacity: 1; transform: translate(130px, 200px) rotate(-220deg); }
+  100%     { opacity: 0; transform: translate(130px, 220px) rotate(-260deg); }
+}
+@keyframes es-demo-half-r {
+  0%, 41%  { opacity: 0; transform: translate(195px, 75px) rotate(0deg); }
+  42%      { opacity: 1; transform: translate(195px, 75px) rotate(20deg); }
+  90%      { opacity: 1; transform: translate(270px, 200px) rotate(220deg); }
+  100%     { opacity: 0; transform: translate(270px, 220px) rotate(260deg); }
+}
+
+.es-demo__trail {
+  stroke-dasharray: 360;
+  stroke-dashoffset: 360;
+  filter: drop-shadow(0 0 4px rgba(255,255,255,0.6));
+  animation: es-demo-trail 2.4s ease-in-out infinite;
+}
+@keyframes es-demo-trail {
+  0%   { stroke-dashoffset: 360; opacity: 0; }
+  20%  { stroke-dashoffset: 360; opacity: 0; }
+  30%  { stroke-dashoffset: 360; opacity: 0.9; }
+  46%  { stroke-dashoffset: 0;   opacity: 0.9; }
+  60%  { stroke-dashoffset: 0;   opacity: 0; }
+  100% { stroke-dashoffset: 360; opacity: 0; }
+}
+
+// Bomb decoy just sits at corner — visual reminder there's a bomb to dodge.
+.es-demo__bomb, .es-demo__fuse {
+  opacity: 0.6;
+}
+.es-demo__spark {
+  animation: es-demo-spark 0.6s ease-in-out infinite;
+}
+@keyframes es-demo-spark {
+  0%, 100% { transform: scale(1);   opacity: 1; }
+  50%      { transform: scale(1.6); opacity: 0.5; }
+}
+
+// Finger follows the trail (left → right) during the swipe segment of the loop.
 .es-demo__finger {
   position: absolute;
-  top: 50%;
+  top: 30%;
+  left: 0;
   width: 30px;
   height: 30px;
-  animation: es-demo-finger 2.4s steps(1, end) infinite;
+  animation: es-demo-finger 2.4s ease-in-out infinite;
   pointer-events: none;
 }
 .es-demo__finger-icon {
@@ -226,21 +281,13 @@
   height: 100%;
   fill: #fff;
   filter: drop-shadow(0 1px 3px rgba(0,0,0,0.65));
-  animation: es-demo-finger-tap 0.4s ease-out infinite;
 }
 @keyframes es-demo-finger {
-  0%    { left: 17%; }
-  16%   { left: 28%; }
-  33%   { left: 39%; }
-  49%   { left: 50%; }
-  65%   { left: 61%; }
-  82%   { left: 72%; }
-  100%  { left: 72%; }
-}
-@keyframes es-demo-finger-tap {
-  0%   { transform: translateY(-8px) scale(0.92); opacity: 0.75; }
-  60%  { transform: translateY(0)    scale(1);    opacity: 1; }
-  100% { transform: translateY(-8px) scale(0.92); opacity: 0.75; }
+  0%, 20%  { left: 6%;  top: 30%;  opacity: 0; }
+  25%      { left: 6%;  top: 30%;  opacity: 1; }
+  46%      { left: 86%; top: 38%;  opacity: 1; }
+  60%      { left: 86%; top: 38%;  opacity: 0; }
+  100%     { left: 86%; top: 38%;  opacity: 0; }
 }
 
 // ─── End screen ──────────────────────────────────────────────────────────
@@ -282,6 +329,7 @@
   gap: 10px 18px;
   width: 100%;
   margin: 6px 0 14px;
+  &--3 { grid-template-columns: repeat(3, 1fr); }
 }
 .es-stats__cell {
   display: flex;

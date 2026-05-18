@@ -1,60 +1,68 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { ActiveFood, Impact, Screen, Stats } from '../types';
-import { FOODS_PER_RUN, activeForLevel, pickFood } from '../utils/food';
-import { comboColor, drawBackground, drawBoard, drawFood, drawLeavingFood, drawTimerBar, makeDrawCtx } from '../utils/draw';
+import type { Flyer, FlyKind, Half, Impact, Particle, Screen, Stats, TrailPoint } from '../types';
+import { VISUALS, difficulty, pickFood } from '../utils/food';
 import {
-  sfxChop, sfxFoodCleared, sfxRunEnd,
+  drawBackground, drawFlyer, drawHalf, drawParticle, drawTrail, makeDrawCtx,
+} from '../utils/draw';
+import {
+  sfxBomb, sfxMiss, sfxRunEnd, sfxSlice, sfxSwipeStart,
   startAmbient, stopAmbient, unlockAudio,
 } from '../utils/audio';
 
 const BEST_KEY = 'endless-slice:best';
-const COMBO_WINDOW_MS = 280;
-const COMBO_MAX = 10;
-const POINTS_PER_CUT = 10;
-const ARRIVE_S = 0.45;
-const LEAVE_S = 0.55;
-const MIN_CUT_SPACING_DU = 14; // design units — prevents stacking taps in the same pixel
+const LIVES = 3;
+const POINTS_PER_SLICE = 10;
+const COMBO_BONUS_PER_EXTRA = 10; // each extra slice in same swipe adds +10 × extra
+const GOLDEN_POINTS = 100;
+const TRAIL_LIFE_MS = 180;
+const FLASH_LIFE_MS = 260;
 
 export function useEndlessSlice() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const rafRef = useRef<number | null>(null);
   const lastTickRef = useRef<number>(0);
+  const elapsedRef = useRef<number>(0);
+  const spawnCooldownRef = useRef<number>(0);
 
   const screenRef = useRef<Screen>('start');
-  const foodRef = useRef<ActiveFood | null>(null);
-  const phaseTimerRef = useRef<number>(0);
-  const levelRef = useRef<number>(0);
-  const scoreRef = useRef<number>(0);
-  const comboRef = useRef<number>(0);
-  const maxComboRef = useRef<number>(0);
-  const lastTapMsRef = useRef<number>(0);
-  const totalCutsRef = useRef<number>(0);
-  const foodsClearedRef = useRef<number>(0);
+  const flyersRef = useRef<Flyer[]>([]);
+  const halvesRef = useRef<Half[]>([]);
+  const particlesRef = useRef<Particle[]>([]);
   const impactsRef = useRef<Impact[]>([]);
-  const flashRef = useRef<{ at: number; intensity: number }>({ at: 0, intensity: 0 });
-  const sizeRef = useRef<{ W: number; H: number; dpr: number }>({ W: 0, H: 0, dpr: 1 });
+  const trailRef = useRef<TrailPoint[]>([]);
+  const swipingRef = useRef<boolean>(false);
+  const sliceCountInSwipeRef = useRef<number>(0);
+  const livesRef = useRef<number>(LIVES);
+  const scoreRef = useRef<number>(0);
+  const slicedRef = useRef<number>(0);
+  const maxComboRef = useRef<number>(0);
+  const flashRef = useRef<{ at: number; color: string }>({ at: 0, color: '' });
+  const sizeRef = useRef<{ W: number; H: number; dpr: number; cssW: number; cssH: number }>({
+    W: 0, H: 0, dpr: 1, cssW: 0, cssH: 0,
+  });
+  const uidRef = useRef<number>(1);
 
   const [screen, setScreen] = useState<Screen>('start');
   const [score, setScore] = useState(0);
-  const [combo, setCombo] = useState(0);
-  const [foodIndex, setFoodIndex] = useState(0); // 0..FOODS_PER_RUN
+  const [lives, setLives] = useState(LIVES);
+  const [comboInSwipe, setComboInSwipe] = useState(0);
   const [best, setBest] = useState<number>(() => {
     const v = typeof localStorage !== 'undefined' ? localStorage.getItem(BEST_KEY) : null;
     return v ? Number(v) || 0 : 0;
   });
   const [stats, setStats] = useState<Stats>({
-    finalScore: 0, totalCuts: 0, maxCombo: 0, foodsCleared: 0, isNewBest: false,
+    finalScore: 0, sliced: 0, maxCombo: 0, isNewBest: false,
   });
 
   const resize = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
-    const W = canvas.clientWidth;
-    const H = canvas.clientHeight;
-    canvas.width = Math.floor(W * dpr);
-    canvas.height = Math.floor(H * dpr);
-    sizeRef.current = { W: canvas.width, H: canvas.height, dpr };
+    const cssW = canvas.clientWidth;
+    const cssH = canvas.clientHeight;
+    canvas.width = Math.floor(cssW * dpr);
+    canvas.height = Math.floor(cssH * dpr);
+    sizeRef.current = { W: canvas.width, H: canvas.height, dpr, cssW, cssH };
   }, []);
 
   useEffect(() => {
@@ -64,52 +72,32 @@ export function useEndlessSlice() {
     return () => window.removeEventListener('resize', onResize);
   }, [resize]);
 
-  const spawnFood = useCallback(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const { W, H } = sizeRef.current;
-    const ctx = canvas.getContext('2d')!;
-    const d = makeDrawCtx(ctx, W, H);
-    const level = levelRef.current;
-    const kind = pickFood(level);
-    const activeS = activeForLevel(level);
-    foodRef.current = {
-      kind,
-      leftX: d.boardRight + 80 * d.scale, // off-board right; eased into place during 'arriving'
-      centerY: d.centerY,
-      cuts: [],
-      phase: 'arriving',
-      remaining: activeS,
-      activeS,
-      seed: (level * 9973 + 17) & 0xffff,
-    };
-    phaseTimerRef.current = 0;
-    setFoodIndex(level + 1);
-  }, []);
-
   const start = useCallback(() => {
-    levelRef.current = 0;
-    scoreRef.current = 0;
-    comboRef.current = 0;
-    maxComboRef.current = 0;
-    lastTapMsRef.current = 0;
-    totalCutsRef.current = 0;
-    foodsClearedRef.current = 0;
+    flyersRef.current = [];
+    halvesRef.current = [];
+    particlesRef.current = [];
     impactsRef.current = [];
+    trailRef.current = [];
+    swipingRef.current = false;
+    sliceCountInSwipeRef.current = 0;
+    elapsedRef.current = 0;
+    spawnCooldownRef.current = 0.6;
+    livesRef.current = LIVES;
+    scoreRef.current = 0;
+    slicedRef.current = 0;
+    maxComboRef.current = 0;
     setScore(0);
-    setCombo(0);
-    setFoodIndex(0);
+    setLives(LIVES);
+    setComboInSwipe(0);
     setScreen('playing');
     screenRef.current = 'playing';
-    spawnFood();
     unlockAudio();
     startAmbient();
-  }, [spawnFood]);
+  }, []);
 
   const home = useCallback(() => {
     setScreen('start');
     screenRef.current = 'start';
-    foodRef.current = null;
     stopAmbient();
   }, []);
 
@@ -124,77 +112,224 @@ export function useEndlessSlice() {
     }
     setStats({
       finalScore,
-      totalCuts: totalCutsRef.current,
+      sliced: slicedRef.current,
       maxCombo: maxComboRef.current,
-      foodsCleared: foodsClearedRef.current,
       isNewBest,
     });
     setScreen('end');
     screenRef.current = 'end';
   }, [best]);
 
-  /** Pointer hits the canvas. We use the raw clientX in device-px space. */
-  const handleTap = useCallback((clientX: number, clientY: number) => {
+  // ─── Pointer handlers (driven from EndlessSlice.tsx) ─────────────────
+
+  const mapPointer = useCallback((clientX: number, clientY: number) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return null;
+    const rect = canvas.getBoundingClientRect();
+    return {
+      x: (clientX - rect.left) * (canvas.width / rect.width),
+      y: (clientY - rect.top) * (canvas.height / rect.height),
+    };
+  }, []);
+
+  const onPointerDown = useCallback((clientX: number, clientY: number) => {
     unlockAudio();
     if (screenRef.current !== 'playing') return;
-    const food = foodRef.current;
-    if (!food || food.phase !== 'active') return;
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const rect = canvas.getBoundingClientRect();
-    const { W } = sizeRef.current;
-    const scale = W / 1080;
-    // Map from CSS-px to device-px
-    const dx = (clientX - rect.left) * (canvas.width / rect.width);
-    const dy = (clientY - rect.top) * (canvas.height / rect.height);
+    const p = mapPointer(clientX, clientY);
+    if (!p) return;
+    swipingRef.current = true;
+    sliceCountInSwipeRef.current = 0;
+    setComboInSwipe(0);
+    trailRef.current = [{ x: p.x, y: p.y, t: performance.now() }];
+    sfxSwipeStart();
+  }, [mapPointer]);
 
-    const len = food.kind.length * scale;
-    const thick = food.kind.thickness * scale;
-    // Tap area: anywhere on the board near the food row.
-    // Cuts only land within food's horizontal span; vertical position doesn't matter much,
-    // but we ignore taps far away from the food row to keep accidental UI taps from registering.
-    const yMin = food.centerY - thick / 2 - 60 * scale;
-    const yMax = food.centerY + thick / 2 + 60 * scale;
-    if (dy < yMin || dy > yMax) return;
-
-    // Clamp cut x to inside the food (with small inset so cuts don't land on the curved caps).
-    const inset = thick * 0.18;
-    const minX = food.leftX + inset;
-    const maxX = food.leftX + len - inset;
-    if (dx < minX || dx > maxX) return;
-    const cutX = Math.max(minX, Math.min(maxX, dx));
-
-    // Reject cuts too close to an existing cut (visually + scoring spam guard).
-    const minSpacing = MIN_CUT_SPACING_DU * scale;
-    if (food.cuts.some(c => Math.abs(c.x - cutX) < minSpacing)) return;
-
+  const onPointerMove = useCallback((clientX: number, clientY: number) => {
+    if (!swipingRef.current) return;
+    if (screenRef.current !== 'playing') return;
+    const p = mapPointer(clientX, clientY);
+    if (!p) return;
     const now = performance.now();
-    const rapid = (now - lastTapMsRef.current) < COMBO_WINDOW_MS;
-    comboRef.current = rapid ? Math.min(COMBO_MAX, comboRef.current + 1) : 1;
-    if (comboRef.current > maxComboRef.current) maxComboRef.current = comboRef.current;
-    lastTapMsRef.current = now;
+    const trail = trailRef.current;
+    const prev = trail[trail.length - 1];
+    if (!prev) return;
+    // Skip degenerate (no movement)
+    const dx = p.x - prev.x;
+    const dy = p.y - prev.y;
+    if (dx === 0 && dy === 0) return;
+    // Hit-test segment (prev → p) against living flyers
+    checkSegmentSlice(prev.x, prev.y, p.x, p.y);
+    trail.push({ x: p.x, y: p.y, t: now });
+    // Drop ancient points
+    while (trail.length > 0 && now - trail[0].t > TRAIL_LIFE_MS + 100) trail.shift();
+  }, [mapPointer]);
 
-    food.cuts.push({ x: cutX, born: now, combo: comboRef.current });
-    totalCutsRef.current += 1;
-    const gained = POINTS_PER_CUT * comboRef.current;
+  const onPointerUp = useCallback(() => {
+    swipingRef.current = false;
+    sliceCountInSwipeRef.current = 0;
+    setComboInSwipe(0);
+  }, []);
+
+  // ─── Slicing ────────────────────────────────────────────────────────
+
+  const checkSegmentSlice = (ax: number, ay: number, bx: number, by: number) => {
+    const flyers = flyersRef.current;
+    for (let i = 0; i < flyers.length; i++) {
+      const f = flyers[i];
+      if (f.sliced) continue;
+      const r = f.visual.radius * (sizeRef.current.W / 1080);
+      if (segmentCircle(ax, ay, bx, by, f.x, f.y, r)) {
+        sliceFlyer(f, bx - ax, by - ay);
+      }
+    }
+  };
+
+  const sliceFlyer = (f: Flyer, dirX: number, dirY: number) => {
+    f.sliced = true;
+    const scale = sizeRef.current.W / 1080;
+    const r = f.visual.radius * scale;
+    // Cut angle = direction of swipe
+    const cutAngle = Math.atan2(dirY, dirX);
+    // Perpendicular split velocity (each half pushed opposite ways)
+    const perpX = Math.cos(cutAngle + Math.PI / 2);
+    const perpY = Math.sin(cutAngle + Math.PI / 2);
+    const splitSpeed = 240 * scale;
+    const halfA: Half = {
+      uid: uidRef.current++,
+      visual: f.visual,
+      x: f.x, y: f.y,
+      vx: f.vx + perpX * splitSpeed,
+      vy: f.vy + perpY * splitSpeed,
+      rot: f.rot,
+      vrot: f.vrot + 4,
+      cutAngle,
+      side: 1,
+      life: 1400,
+    };
+    const halfB: Half = {
+      ...halfA,
+      uid: uidRef.current++,
+      vx: f.vx - perpX * splitSpeed,
+      vy: f.vy - perpY * splitSpeed,
+      vrot: f.vrot - 4,
+      side: -1,
+    };
+    halvesRef.current.push(halfA, halfB);
+
+    // Juice particles
+    const now = performance.now();
+    const particleCount = f.kind === 'watermelon' ? 14 : 10;
+    for (let i = 0; i < particleCount; i++) {
+      const a = Math.random() * Math.PI * 2;
+      const sp = 200 * scale * (0.5 + Math.random() * 0.8);
+      particlesRef.current.push({
+        uid: uidRef.current++,
+        x: f.x, y: f.y,
+        vx: Math.cos(a) * sp,
+        vy: Math.sin(a) * sp - 60 * scale,
+        color: f.visual.flesh,
+        size: (4 + Math.random() * 4) * scale,
+        life: 600 + Math.random() * 300,
+        born: now,
+      });
+    }
+
+    if (f.kind === 'bomb') {
+      onBombHit(f);
+      return;
+    }
+
+    slicedRef.current += 1;
+    sliceCountInSwipeRef.current += 1;
+    const c = sliceCountInSwipeRef.current;
+    if (c > maxComboRef.current) maxComboRef.current = c;
+    setComboInSwipe(c);
+    const isGolden = f.kind === 'golden';
+    const gained = isGolden
+      ? GOLDEN_POINTS
+      : POINTS_PER_SLICE + COMBO_BONUS_PER_EXTRA * Math.max(0, c - 1);
     scoreRef.current += gained;
     setScore(scoreRef.current);
-    setCombo(comboRef.current);
 
     impactsRef.current.push({
-      uid: now + Math.random(),
-      x: cutX,
-      y: food.centerY - thick / 2 - 24 * scale,
-      text: `+${gained}`,
-      color: comboColor(comboRef.current),
+      uid: uidRef.current++,
+      x: f.x, y: f.y - r * 1.2,
+      text: isGolden ? `+${gained}` : (c >= 2 ? `×${c} +${gained}` : `+${gained}`),
+      color: isGolden ? '#ffd24a' : comboColor(c),
       born: now,
+      scale: 1 + Math.min(0.6, c * 0.1),
     });
 
-    // Screen flash builds with combo
-    flashRef.current = { at: now, intensity: Math.min(1, 0.18 + comboRef.current * 0.06) };
+    flashRef.current = { at: now, color: isGolden ? '#ffd24a' : f.visual.flesh };
+    sfxSlice(c);
+  };
 
-    sfxChop(comboRef.current);
-  }, []);
+  const onBombHit = (f: Flyer) => {
+    flashRef.current = { at: performance.now(), color: '#ff4f3a' };
+    sfxBomb();
+    livesRef.current = 0;
+    setLives(0);
+    // Schedule game over after a beat
+    setTimeout(() => {
+      if (screenRef.current === 'playing') endRun();
+    }, 600);
+    // Big shockwave particles
+    const now = performance.now();
+    const scale = sizeRef.current.W / 1080;
+    for (let i = 0; i < 24; i++) {
+      const a = Math.random() * Math.PI * 2;
+      const sp = 360 * scale * (0.5 + Math.random() * 1.2);
+      particlesRef.current.push({
+        uid: uidRef.current++,
+        x: f.x, y: f.y,
+        vx: Math.cos(a) * sp,
+        vy: Math.sin(a) * sp - 100 * scale,
+        color: i % 3 === 0 ? '#ffd24a' : '#ff5a2c',
+        size: (5 + Math.random() * 6) * scale,
+        life: 700 + Math.random() * 400,
+        born: now,
+      });
+    }
+  };
+
+  // ─── Spawning ───────────────────────────────────────────────────────
+
+  const spawnWave = () => {
+    const { W, H } = sizeRef.current;
+    const scale = W / 1080;
+    const t = elapsedRef.current;
+    const { bombRate, goldenRate, waveMin, waveMax } = difficulty(t);
+    const count = waveMin + Math.floor(Math.random() * (waveMax - waveMin + 1));
+    for (let i = 0; i < count; i++) {
+      let kind: FlyKind;
+      const roll = Math.random();
+      if (roll < bombRate) kind = 'bomb';
+      else if (roll < bombRate + goldenRate) kind = 'golden';
+      else kind = pickFood(Math.random);
+      const visual = VISUALS[kind];
+      const x = (0.15 + Math.random() * 0.7) * W;
+      const y = H + visual.radius * scale + 20;
+      // Want apex around y = 0.18..0.35 * H. vy negative (upward), gravity positive.
+      // h = vy^2 / (2g) ⇒ vy = sqrt(2g*h)
+      const gravity = 1500 * scale;
+      const apex = (0.55 + Math.random() * 0.18) * H;
+      const vy = -Math.sqrt(2 * gravity * apex);
+      const vxBase = (W * 0.5 - x) / 1.6; // tend to drift toward center
+      const vx = vxBase + (Math.random() - 0.5) * 200 * scale;
+      flyersRef.current.push({
+        uid: uidRef.current++,
+        kind,
+        visual,
+        x, y, vx, vy,
+        rot: Math.random() * Math.PI * 2,
+        vrot: (Math.random() - 0.5) * 3,
+        sliced: false,
+        missed: false,
+      });
+    }
+  };
+
+  // ─── RAF loop ───────────────────────────────────────────────────────
 
   useEffect(() => {
     const tick = (t: number) => {
@@ -208,87 +343,109 @@ export function useEndlessSlice() {
       const dt = Math.min(0.05, (t - last) / 1000);
       lastTickRef.current = t;
       const d = makeDrawCtx(ctx, W, H);
+      const scale = d.scale;
+      const gravity = 1500 * scale;
+      const now = performance.now();
 
       drawBackground(d, t);
-      drawBoard(d);
 
-      const food = foodRef.current;
-      if (food && screenRef.current === 'playing') {
-        const scale = d.scale;
-        const scaledLen = food.kind.length * scale;
-        const targetLeftX = d.boardLeft + (d.boardRight - d.boardLeft - scaledLen) * 0.5;
+      if (screenRef.current === 'playing') {
+        elapsedRef.current += dt;
 
-        if (food.phase === 'arriving') {
-          phaseTimerRef.current += dt;
-          const k = Math.min(1, phaseTimerRef.current / ARRIVE_S);
-          const ease = 1 - Math.pow(1 - k, 3);
-          const fromX = d.boardRight + 80 * scale;
-          food.leftX = fromX + (targetLeftX - fromX) * ease;
-          drawFood(d, food);
-          if (k >= 1) {
-            food.phase = 'active';
-            food.leftX = targetLeftX;
-            phaseTimerRef.current = 0;
-          }
-        } else if (food.phase === 'active') {
-          food.remaining -= dt;
-          phaseTimerRef.current += dt;
-          drawFood(d, food);
-          drawTimerBar(d, food);
-          if (food.remaining <= 0) {
-            const pieces = food.cuts.length + 1;
-            foodsClearedRef.current += 1;
-            // Bonus: +5 per piece (rewards filling the food with cuts)
-            const bonus = pieces * 5;
-            if (bonus > 0) {
-              scoreRef.current += bonus;
-              setScore(scoreRef.current);
-              impactsRef.current.push({
-                uid: performance.now() + Math.random(),
-                x: food.leftX + scaledLen / 2,
-                y: food.centerY - food.kind.thickness * scale / 2 - 80 * scale,
-                text: `${pieces} pieces +${bonus}`,
-                color: '#fff',
-                born: performance.now(),
-              });
+        // Spawn
+        spawnCooldownRef.current -= dt;
+        if (spawnCooldownRef.current <= 0) {
+          spawnWave();
+          const { spawnInterval } = difficulty(elapsedRef.current);
+          spawnCooldownRef.current = spawnInterval * (0.85 + Math.random() * 0.3);
+        }
+
+        // Update flyers
+        const flyers = flyersRef.current;
+        for (let i = flyers.length - 1; i >= 0; i--) {
+          const f = flyers[i];
+          if (!f.sliced) {
+            f.vy += gravity * dt;
+            f.x += f.vx * dt;
+            f.y += f.vy * dt;
+            f.rot += f.vrot * dt;
+            // Off-screen bottom (missed)
+            if (f.y - f.visual.radius * scale > H + 40 * scale) {
+              if (!f.missed) {
+                f.missed = true;
+                if (f.kind !== 'bomb' && f.kind !== 'golden') {
+                  livesRef.current -= 1;
+                  setLives(livesRef.current);
+                  sfxMiss();
+                  flashRef.current = { at: now, color: '#ff4a4a' };
+                  if (livesRef.current <= 0) {
+                    endRun();
+                  }
+                }
+              }
+              flyers.splice(i, 1);
+              continue;
             }
-            sfxFoodCleared(pieces);
-            food.phase = 'leaving';
-            phaseTimerRef.current = 0;
+          } else {
+            flyers.splice(i, 1);
           }
-        } else if (food.phase === 'leaving') {
-          phaseTimerRef.current += dt;
-          const k = Math.min(1, phaseTimerRef.current / LEAVE_S);
-          drawLeavingFood(d, food, k);
-          if (k >= 1) {
-            levelRef.current += 1;
-            // Reset combo between foods (small gap).
-            comboRef.current = 0;
-            setCombo(0);
-            lastTapMsRef.current = 0;
-            if (levelRef.current >= FOODS_PER_RUN) {
-              endRun();
-            } else {
-              spawnFood();
-            }
+        }
+
+        // Update halves
+        const halves = halvesRef.current;
+        for (let i = halves.length - 1; i >= 0; i--) {
+          const h = halves[i];
+          h.vy += gravity * dt;
+          h.x += h.vx * dt;
+          h.y += h.vy * dt;
+          h.rot += h.vrot * dt;
+          h.life -= dt * 1000;
+          if (h.y - h.visual.radius * scale > H + 40 * scale || h.life <= 0) {
+            halves.splice(i, 1);
           }
+        }
+
+        // Update particles
+        const ps = particlesRef.current;
+        for (let i = ps.length - 1; i >= 0; i--) {
+          const p = ps[i];
+          p.vy += gravity * 0.6 * dt;
+          p.x += p.vx * dt;
+          p.y += p.vy * dt;
+          if (now - p.born > p.life) ps.splice(i, 1);
         }
       }
 
-      // Impacts (floating text)
-      const now = performance.now();
+      // Draw flyers (only living, non-sliced)
+      flyersRef.current.forEach(f => {
+        if (!f.sliced) drawFlyer(d, f);
+      });
+      // Draw halves
+      halvesRef.current.forEach(h => drawHalf(d, h));
+      // Draw particles
+      particlesRef.current.forEach(p => drawParticle(d, p, now));
+      // Draw trail (drawn on top of everything)
+      if (trailRef.current.length > 1) {
+        // Prune old points just before drawing
+        while (trailRef.current.length > 0 && now - trailRef.current[0].t > TRAIL_LIFE_MS) {
+          trailRef.current.shift();
+        }
+        drawTrail(d, trailRef.current, now);
+      }
+
+      // Impacts
       const lifetime = 700;
       impactsRef.current = impactsRef.current.filter(f => now - f.born < lifetime);
       impactsRef.current.forEach(f => {
         const k = (now - f.born) / lifetime;
         const alpha = 1 - k;
-        const dy = -50 * d.scale * k;
-        const scaleBump = 1 + (1 - k) * 0.4;
+        const dy = -60 * scale * k;
+        const scaleBump = (1 + (1 - k) * 0.5) * f.scale;
         ctx.save();
         ctx.globalAlpha = alpha;
         ctx.translate(f.x, f.y + dy);
         ctx.scale(scaleBump, scaleBump);
-        ctx.font = `800 ${42 * d.scale}px 'Baloo 2', sans-serif`;
+        ctx.font = `800 ${40 * scale}px 'Baloo 2', sans-serif`;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillStyle = f.color;
@@ -298,19 +455,20 @@ export function useEndlessSlice() {
         ctx.restore();
       });
 
-      // Screen flash (subtle)
-      const f = flashRef.current;
-      if (f.intensity > 0) {
-        const age = now - f.at;
-        const fade = Math.max(0, 1 - age / 220);
-        if (fade > 0) {
+      // Screen flash
+      const fl = flashRef.current;
+      if (fl.at > 0) {
+        const age = now - fl.at;
+        const k = 1 - age / FLASH_LIFE_MS;
+        if (k > 0) {
           ctx.save();
           ctx.globalCompositeOperation = 'lighter';
-          ctx.fillStyle = `rgba(255, 220, 110, ${0.10 * f.intensity * fade})`;
+          // Convert color to rgba w/ alpha
+          ctx.fillStyle = hexToRgba(fl.color, 0.18 * k);
           ctx.fillRect(0, 0, W, H);
           ctx.restore();
         } else {
-          flashRef.current = { at: 0, intensity: 0 };
+          flashRef.current = { at: 0, color: '' };
         }
       }
 
@@ -321,13 +479,48 @@ export function useEndlessSlice() {
       if (rafRef.current != null) cancelAnimationFrame(rafRef.current);
       rafRef.current = null;
     };
-  }, [endRun, spawnFood]);
+  }, [endRun]);
 
   useEffect(() => () => { stopAmbient(); }, []);
 
   return {
     canvasRef,
-    screen, score, combo, best, stats, foodIndex,
-    start, home, handleTap,
+    screen, score, lives, comboInSwipe, best, stats,
+    start, home,
+    onPointerDown, onPointerMove, onPointerUp,
   };
+}
+
+// ─── helpers ─────────────────────────────────────────────────────────────
+
+function comboColor(c: number): string {
+  if (c >= 6) return '#ff4f5e';
+  if (c >= 4) return '#ff7a3c';
+  if (c >= 3) return '#ffae3e';
+  if (c >= 2) return '#ffd24a';
+  return '#fffacc';
+}
+
+/** Closest distance from segment AB to point C; returns true if ≤ r. */
+function segmentCircle(ax: number, ay: number, bx: number, by: number, cx: number, cy: number, r: number): boolean {
+  const dx = bx - ax;
+  const dy = by - ay;
+  const lenSq = dx * dx + dy * dy;
+  let tt = 0;
+  if (lenSq > 0) {
+    tt = ((cx - ax) * dx + (cy - ay) * dy) / lenSq;
+    tt = Math.max(0, Math.min(1, tt));
+  }
+  const px = ax + dx * tt;
+  const py = ay + dy * tt;
+  const ddx = cx - px;
+  const ddy = cy - py;
+  return ddx * ddx + ddy * ddy <= r * r;
+}
+
+function hexToRgba(hex: string, a: number): string {
+  const m = /^#?([0-9a-f]{6})$/i.exec(hex);
+  if (!m) return `rgba(255,255,255,${a})`;
+  const n = parseInt(m[1], 16);
+  return `rgba(${(n >> 16) & 0xff}, ${(n >> 8) & 0xff}, ${n & 0xff}, ${a})`;
 }

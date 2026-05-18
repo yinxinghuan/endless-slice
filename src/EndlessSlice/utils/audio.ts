@@ -1,4 +1,4 @@
-// Punchy chop SFX with combo-driven pitch rise + breathing ambient.
+// Slice + bomb + miss SFX + breathing ambient.
 
 let ctx: AudioContext | null = null;
 function ac(): AudioContext {
@@ -56,32 +56,59 @@ function noiseBurst(dur: number, gainPeak: number, hpHz: number) {
   } catch { /* ignore */ }
 }
 
-/** Chop SFX. Combo (1..10) drives pitch + brightness. */
-export function sfxChop(combo: number) {
-  const c = Math.max(1, Math.min(10, combo));
-  // Low thump (the impact)
-  tone(60 + c * 6, 0.10, 0.18, 'sawtooth');
-  tone(140 + c * 12, 0.07, 0.10, 'square');
-  // Slice tone (the cleanness)
-  tone(520 + c * 80, 0.10 + c * 0.005, 0.08, 'triangle');
-  // Knife brightness
-  noiseBurst(0.08, 0.06, 1800 + c * 120);
+function pitchSweep(fStart: number, fEnd: number, dur: number, gainPeak: number, type: OscillatorType = 'sine') {
+  try {
+    const c = ac();
+    const now = c.currentTime;
+    const o = c.createOscillator();
+    o.type = type;
+    o.frequency.setValueAtTime(fStart, now);
+    o.frequency.exponentialRampToValueAtTime(Math.max(40, fEnd), now + dur);
+    const g = c.createGain();
+    g.gain.setValueAtTime(0.0001, now);
+    g.gain.linearRampToValueAtTime(gainPeak, now + 0.005);
+    g.gain.exponentialRampToValueAtTime(0.0001, now + dur);
+    o.connect(g).connect(c.destination);
+    o.start(now);
+    o.stop(now + dur + 0.04);
+  } catch { /* ignore */ }
 }
 
-export function sfxFoodCleared(pieces: number) {
-  const base = 440 + Math.min(pieces, 20) * 18;
-  tone(base, 0.11, 0.06, 'triangle');
-  setTimeout(() => tone(base * 1.5, 0.16, 0.07, 'triangle'), 70);
-  setTimeout(() => tone(base * 2.0, 0.20, 0.05, 'triangle'), 140);
+/** Slice tone: clean high "shing", pitch rising with combo. */
+export function sfxSlice(combo: number) {
+  const c = Math.max(1, Math.min(15, combo));
+  // High bright thwack
+  pitchSweep(900 + c * 60, 220, 0.18, 0.12, 'triangle');
+  // Whoosh burst
+  noiseBurst(0.10, 0.08, 1800 + c * 80);
 }
 
+/** Bomb explosion — deep boom + noise tail. */
+export function sfxBomb() {
+  pitchSweep(220, 50, 0.45, 0.32, 'sawtooth');
+  pitchSweep(110, 30, 0.55, 0.20, 'square');
+  noiseBurst(0.45, 0.20, 200);
+}
+
+/** Missed food (fell off bottom). Soft thud. */
+export function sfxMiss() {
+  tone(180, 0.12, 0.10, 'sine');
+  tone(120, 0.16, 0.06, 'sine', -8);
+}
+
+/** Run-end fanfare. */
 export function sfxRunEnd() {
   tone(660, 0.18, 0.10, 'triangle');
   setTimeout(() => tone(880, 0.22, 0.09, 'triangle'), 130);
   setTimeout(() => tone(1320, 0.30, 0.07, 'triangle'), 280);
 }
 
-// Breathing ambient: gentle low-pad that swells, holds, fades, then silence.
+/** Brief swoosh on swipe start (subtle). */
+export function sfxSwipeStart() {
+  noiseBurst(0.06, 0.05, 1200);
+}
+
+// Breathing ambient — required by project rule (no continuous drone).
 let ambientStop: (() => void) | null = null;
 export function startAmbient() {
   stopAmbient();
@@ -125,11 +152,7 @@ export function startAmbient() {
     nextTimer = window.setTimeout(cycle, (total + silence) * 1000);
   };
   cycle();
-
-  ambientStop = () => {
-    alive = false;
-    if (nextTimer !== null) clearTimeout(nextTimer);
-  };
+  ambientStop = () => { alive = false; if (nextTimer !== null) clearTimeout(nextTimer); };
 }
 export function stopAmbient() {
   if (ambientStop) ambientStop();

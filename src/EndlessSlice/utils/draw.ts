@@ -1,238 +1,336 @@
-import type { ActiveFood } from '../types';
+import type { Flyer, Half, Particle, TrailPoint, FlyerVisual } from '../types';
 
 export interface DrawCtx {
   ctx: CanvasRenderingContext2D;
   W: number;
   H: number;
   scale: number;
-  boardLeft: number;
-  boardRight: number;
-  boardTop: number;
-  boardBottom: number;
-  centerY: number;
 }
 
 export function makeDrawCtx(ctx: CanvasRenderingContext2D, W: number, H: number): DrawCtx {
-  const scale = W / 1080;
-  const boardHeight = Math.min(H * 0.55, 720 * scale);
-  const centerY = H * 0.5;
-  const boardTop = centerY - boardHeight / 2;
-  const boardBottom = centerY + boardHeight / 2;
-  const boardMargin = 40 * scale;
-  return {
-    ctx, W, H, scale,
-    boardLeft: boardMargin,
-    boardRight: W - boardMargin,
-    boardTop, boardBottom, centerY,
-  };
-}
-
-function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
-  const rr = Math.min(r, w / 2, h / 2);
-  ctx.beginPath();
-  ctx.moveTo(x + rr, y);
-  ctx.arcTo(x + w, y, x + w, y + h, rr);
-  ctx.arcTo(x + w, y + h, x, y + h, rr);
-  ctx.arcTo(x, y + h, x, y, rr);
-  ctx.arcTo(x, y, x + w, y, rr);
-  ctx.closePath();
+  return { ctx, W, H, scale: W / 1080 };
 }
 
 export function drawBackground(d: DrawCtx, t: number) {
   const { ctx, W, H } = d;
   const breath = 0.5 + 0.5 * Math.sin(t * 0.0006);
-  const grad = ctx.createRadialGradient(W / 2, H / 2, 40 * d.scale, W / 2, H / 2, Math.max(W, H) * 0.7);
-  grad.addColorStop(0, `rgba(64, 38, 22, ${0.95 - breath * 0.05})`);
+  const grad = ctx.createRadialGradient(W / 2, H * 0.4, 60 * d.scale, W / 2, H / 2, Math.max(W, H) * 0.8);
+  grad.addColorStop(0, `rgba(74, 44, 26, ${0.95 - breath * 0.05})`);
   grad.addColorStop(0.7, '#22150c');
   grad.addColorStop(1, '#0e0805');
   ctx.fillStyle = grad;
   ctx.fillRect(0, 0, W, H);
 }
 
-export function drawBoard(d: DrawCtx) {
-  const { ctx, boardLeft, boardRight, boardTop, boardBottom, scale } = d;
-  const w = boardRight - boardLeft;
-  const h = boardBottom - boardTop;
-  ctx.save();
-  const grad = ctx.createLinearGradient(0, boardTop, 0, boardBottom);
-  grad.addColorStop(0, '#a37348');
-  grad.addColorStop(0.5, '#7a5230');
-  grad.addColorStop(1, '#5d3c20');
-  ctx.fillStyle = grad;
-  roundRect(ctx, boardLeft, boardTop, w, h, 24 * scale);
-  ctx.fill();
-  ctx.strokeStyle = 'rgba(40,22,10,0.18)';
-  ctx.lineWidth = 1 * scale;
-  for (let i = 0; i < 10; i++) {
-    const y = boardTop + (h / 10) * (i + 0.5) + Math.sin(i * 1.3) * 4 * scale;
-    ctx.beginPath();
-    ctx.moveTo(boardLeft + 20 * scale, y);
-    ctx.lineTo(boardRight - 20 * scale, y);
-    ctx.stroke();
-  }
-  ctx.strokeStyle = 'rgba(0,0,0,0.35)';
-  ctx.lineWidth = 3 * scale;
-  roundRect(ctx, boardLeft, boardTop, w, h, 24 * scale);
-  ctx.stroke();
-  ctx.restore();
-}
+// ─── Whole flyer ─────────────────────────────────────────────────────────
 
-export function drawFood(d: DrawCtx, food: ActiveFood) {
+export function drawFlyer(d: DrawCtx, f: Flyer) {
   const { ctx, scale } = d;
-  const kind = food.kind;
-  const len = kind.length * scale;
-  const thick = kind.thickness * scale;
-  const left = food.leftX;
-  const top = food.centerY - thick / 2;
-
+  const r = f.visual.radius * scale;
   ctx.save();
+  ctx.translate(f.x, f.y);
+  ctx.rotate(f.rot);
+
   // Drop shadow
-  ctx.fillStyle = 'rgba(0,0,0,0.32)';
-  roundRect(ctx, left + 4 * scale, top + 10 * scale, len, thick, thick / 2);
-  ctx.fill();
-
-  // Body
-  const grad = ctx.createLinearGradient(0, top, 0, top + thick);
-  grad.addColorStop(0, kind.accent);
-  grad.addColorStop(0.5, kind.body);
-  grad.addColorStop(1, kind.crust);
-  ctx.fillStyle = grad;
-  roundRect(ctx, left, top, len, thick, thick / 2);
-  ctx.fill();
-
-  // Crust ends
-  ctx.fillStyle = kind.crust;
-  ctx.globalAlpha = 0.55;
-  ctx.beginPath();
-  ctx.ellipse(left + thick * 0.18, food.centerY, thick * 0.18, thick * 0.5, 0, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.beginPath();
-  ctx.ellipse(left + len - thick * 0.18, food.centerY, thick * 0.18, thick * 0.5, 0, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.globalAlpha = 1;
-
-  // Surface specks
-  ctx.fillStyle = 'rgba(255,255,255,0.18)';
-  const speckCount = Math.floor(kind.length / 30);
-  for (let i = 0; i < speckCount; i++) {
-    const sx = left + ((i * 73 + food.seed * 17) % len);
-    const sy = top + ((i * 37 + food.seed * 11) % thick * 0.7) + thick * 0.15;
-    const r = 1.4 * scale + (i % 3) * 0.4 * scale;
-    ctx.beginPath();
-    ctx.arc(sx, sy, r, 0, Math.PI * 2);
-    ctx.fill();
-  }
-
-  // Cuts (animated): bright flash on birth → settle to thin colored gap
-  const now = performance.now();
-  food.cuts.forEach((c) => {
-    const age = now - c.born;
-    const fresh = Math.max(0, 1 - age / 180); // 0..1, fresh→old over 180ms
-    const baseColor = comboColor(c.combo);
-
-    // Fresh glow halo
-    if (fresh > 0) {
-      ctx.save();
-      ctx.globalCompositeOperation = 'lighter';
-      ctx.strokeStyle = baseColor;
-      ctx.lineWidth = (3 + 12 * fresh) * scale;
-      ctx.shadowColor = baseColor;
-      ctx.shadowBlur = (10 + 30 * fresh) * scale;
-      ctx.globalAlpha = 0.55 + 0.45 * fresh;
-      ctx.beginPath();
-      ctx.moveTo(c.x, top - 24 * scale);
-      ctx.lineTo(c.x, top + thick + 24 * scale);
-      ctx.stroke();
-      ctx.restore();
-    }
-    // Persistent thin slash
-    ctx.strokeStyle = baseColor;
-    ctx.lineWidth = 3 * scale;
-    ctx.beginPath();
-    ctx.moveTo(c.x, top - 8 * scale);
-    ctx.lineTo(c.x, top + thick + 8 * scale);
-    ctx.stroke();
-    // Dark inset gap (the "sliced" feel)
-    ctx.strokeStyle = 'rgba(0,0,0,0.55)';
-    ctx.lineWidth = 1.5 * scale;
-    ctx.beginPath();
-    ctx.moveTo(c.x, top + 4 * scale);
-    ctx.lineTo(c.x, top + thick - 4 * scale);
-    ctx.stroke();
-  });
-
-  ctx.restore();
-}
-
-export function comboColor(combo: number): string {
-  if (combo >= 10) return '#ff4f5e';
-  if (combo >= 7)  return '#ff7a3c';
-  if (combo >= 5)  return '#ffae3e';
-  if (combo >= 3)  return '#ffd24a';
-  return '#fffacc';
-}
-
-/** Active-window progress bar above the food (1 → 0 as time runs out). */
-export function drawTimerBar(d: DrawCtx, food: ActiveFood) {
-  if (food.phase !== 'active') return;
-  const { ctx, scale } = d;
-  const k = Math.max(0, Math.min(1, food.remaining / food.activeS));
-  const len = food.kind.length * scale;
-  const top = food.centerY - food.kind.thickness * scale / 2 - 22 * scale;
-  const h = 6 * scale;
-  const w = len;
-  // Track
-  ctx.save();
   ctx.fillStyle = 'rgba(0,0,0,0.35)';
-  roundRect(ctx, food.leftX, top, w, h, h / 2);
+  ctx.beginPath();
+  ctx.ellipse(0, r * 0.12, r * 0.95, r * 0.95 * 0.85, 0, 0, Math.PI * 2);
   ctx.fill();
-  // Fill — color shifts from green → yellow → red
-  const color = k > 0.6 ? '#9be36b' : k > 0.3 ? '#ffd24a' : '#ff5a5a';
-  ctx.fillStyle = color;
-  ctx.shadowColor = color;
-  ctx.shadowBlur = 8 * scale;
-  roundRect(ctx, food.leftX, top, w * k, h, h / 2);
+
+  if (f.kind === 'bomb') {
+    drawBombBody(ctx, r, f.visual);
+  } else if (f.kind === 'banana') {
+    drawBananaBody(ctx, r, f.visual);
+  } else if (f.kind === 'watermelon') {
+    drawWatermelonBody(ctx, r, f.visual);
+  } else if (f.kind === 'sushi') {
+    drawSushiBody(ctx, r, f.visual);
+  } else if (f.kind === 'cucumber') {
+    drawCucumberBody(ctx, r, f.visual);
+  } else {
+    // tomato / orange / golden — round skin
+    drawRoundBody(ctx, r, f.visual);
+    if (f.kind === 'tomato') drawTomatoLeaf(ctx, r, f.visual);
+    if (f.kind === 'orange') drawOrangePeel(ctx, r);
+    if (f.kind === 'golden') drawGoldenSparkle(ctx, r);
+  }
+
+  // Subtle highlight
+  ctx.globalCompositeOperation = 'screen';
+  ctx.fillStyle = 'rgba(255,255,255,0.18)';
+  ctx.beginPath();
+  ctx.ellipse(-r * 0.32, -r * 0.42, r * 0.4, r * 0.22, -0.4, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.restore();
+}
+
+function drawRoundBody(ctx: CanvasRenderingContext2D, r: number, v: FlyerVisual) {
+  const grad = ctx.createRadialGradient(-r * 0.3, -r * 0.3, r * 0.1, 0, 0, r);
+  grad.addColorStop(0, lighten(v.body, 0.2));
+  grad.addColorStop(1, v.body);
+  ctx.fillStyle = grad;
+  ctx.beginPath();
+  ctx.arc(0, 0, r, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+function drawTomatoLeaf(ctx: CanvasRenderingContext2D, r: number, v: FlyerVisual) {
+  ctx.fillStyle = v.accent;
+  ctx.beginPath();
+  for (let i = 0; i < 5; i++) {
+    const a = -Math.PI / 2 + (i - 2) * 0.55;
+    const lx = Math.cos(a) * r * 0.55;
+    const ly = Math.sin(a) * r * 0.55;
+    ctx.ellipse(lx, ly, r * 0.22, r * 0.13, a, 0, Math.PI * 2);
+  }
+  ctx.fill();
+}
+
+function drawOrangePeel(ctx: CanvasRenderingContext2D, r: number) {
+  ctx.strokeStyle = 'rgba(0,0,0,0.18)';
+  ctx.lineWidth = r * 0.04;
+  for (let i = 0; i < 6; i++) {
+    const a = (i / 6) * Math.PI * 2;
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.lineTo(Math.cos(a) * r * 0.95, Math.sin(a) * r * 0.95);
+    ctx.stroke();
+  }
+}
+
+function drawGoldenSparkle(ctx: CanvasRenderingContext2D, r: number) {
+  ctx.fillStyle = '#fff';
+  ctx.globalAlpha = 0.85;
+  for (let i = 0; i < 4; i++) {
+    const a = (i / 4) * Math.PI * 2;
+    ctx.beginPath();
+    ctx.arc(Math.cos(a) * r * 0.5, Math.sin(a) * r * 0.5, r * 0.06, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+}
+
+function drawBananaBody(ctx: CanvasRenderingContext2D, r: number, v: FlyerVisual) {
+  // Crescent
+  ctx.fillStyle = v.body;
+  ctx.beginPath();
+  ctx.ellipse(0, 0, r * 1.1, r * 0.55, 0, 0, Math.PI * 2);
+  ctx.fill();
+  // Inner curve (subtract via overlay)
+  ctx.fillStyle = lighten(v.body, 0.15);
+  ctx.beginPath();
+  ctx.ellipse(0, r * 0.4, r * 1.05, r * 0.45, 0, 0, Math.PI * 2);
+  ctx.fill();
+  // Ends darker
+  ctx.fillStyle = v.accent;
+  ctx.beginPath();
+  ctx.ellipse(-r * 1.05, 0, r * 0.1, r * 0.18, 0, 0, Math.PI * 2);
+  ctx.ellipse(r * 1.05, 0, r * 0.1, r * 0.18, 0, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+function drawCucumberBody(ctx: CanvasRenderingContext2D, r: number, v: FlyerVisual) {
+  const grad = ctx.createLinearGradient(0, -r * 0.4, 0, r * 0.4);
+  grad.addColorStop(0, lighten(v.body, 0.2));
+  grad.addColorStop(1, v.body);
+  ctx.fillStyle = grad;
+  ctx.beginPath();
+  ctx.ellipse(0, 0, r * 1.15, r * 0.55, 0, 0, Math.PI * 2);
+  ctx.fill();
+  // Ridges
+  ctx.strokeStyle = v.accent;
+  ctx.lineWidth = r * 0.04;
+  for (let i = -3; i <= 3; i++) {
+    const x = i * r * 0.28;
+    ctx.beginPath();
+    ctx.moveTo(x, -r * 0.4);
+    ctx.lineTo(x, r * 0.4);
+    ctx.stroke();
+  }
+}
+
+function drawWatermelonBody(ctx: CanvasRenderingContext2D, r: number, v: FlyerVisual) {
+  // Green skin
+  const grad = ctx.createRadialGradient(-r * 0.3, -r * 0.3, r * 0.1, 0, 0, r);
+  grad.addColorStop(0, lighten(v.body, 0.25));
+  grad.addColorStop(1, v.body);
+  ctx.fillStyle = grad;
+  ctx.beginPath();
+  ctx.arc(0, 0, r, 0, Math.PI * 2);
+  ctx.fill();
+  // Stripes
+  ctx.fillStyle = v.accent;
+  ctx.globalAlpha = 0.45;
+  for (let i = -3; i <= 3; i++) {
+    const a = (i / 3) * 0.7;
+    ctx.beginPath();
+    ctx.ellipse(0, 0, r * 0.07, r * 0.95, a, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+}
+
+function drawSushiBody(ctx: CanvasRenderingContext2D, r: number, v: FlyerVisual) {
+  // Dark nori cylinder seen from end
+  ctx.fillStyle = v.body;
+  ctx.beginPath();
+  ctx.arc(0, 0, r, 0, Math.PI * 2);
+  ctx.fill();
+  // Rice inner ring
+  ctx.fillStyle = v.flesh;
+  ctx.beginPath();
+  ctx.arc(0, 0, r * 0.72, 0, Math.PI * 2);
+  ctx.fill();
+  // Red filling center
+  ctx.fillStyle = v.accent;
+  ctx.beginPath();
+  ctx.arc(0, 0, r * 0.32, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+function drawBombBody(ctx: CanvasRenderingContext2D, r: number, v: FlyerVisual) {
+  const grad = ctx.createRadialGradient(-r * 0.3, -r * 0.3, r * 0.1, 0, 0, r);
+  grad.addColorStop(0, '#55555a');
+  grad.addColorStop(0.8, v.body);
+  grad.addColorStop(1, '#000');
+  ctx.fillStyle = grad;
+  ctx.beginPath();
+  ctx.arc(0, 0, r, 0, Math.PI * 2);
+  ctx.fill();
+  // Fuse
+  ctx.strokeStyle = '#8a6b3a';
+  ctx.lineWidth = r * 0.10;
+  ctx.beginPath();
+  ctx.moveTo(0, -r * 0.95);
+  ctx.quadraticCurveTo(r * 0.55, -r * 1.45, r * 0.65, -r * 1.7);
+  ctx.stroke();
+  // Spark
+  ctx.fillStyle = v.accent;
+  ctx.shadowColor = v.accent;
+  ctx.shadowBlur = 18;
+  ctx.beginPath();
+  ctx.arc(r * 0.65, -r * 1.7, r * 0.18, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.shadowBlur = 0;
+  // White warning stripe
+  ctx.fillStyle = 'rgba(255,255,255,0.9)';
+  ctx.font = `bold ${r * 0.7}px sans-serif`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('!', 0, 0);
+}
+
+// ─── Half (sliced piece) ─────────────────────────────────────────────────
+
+export function drawHalf(d: DrawCtx, h: Half) {
+  const { ctx, scale } = d;
+  const r = h.visual.radius * scale;
+  const alpha = Math.min(1, h.life / 600);
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.translate(h.x, h.y);
+  // Rotate so the cut faces "down" (+y) in local space
+  ctx.rotate(h.cutAngle + (h.side === 1 ? 0 : Math.PI));
+
+  // Body half-disk: arc above the cut line (y <= 0 in local space).
+  ctx.fillStyle = h.visual.body;
+  ctx.beginPath();
+  ctx.arc(0, 0, r, Math.PI, 0); // upper half
+  ctx.closePath();
+  ctx.fill();
+
+  // Flesh strip along cut line
+  const fleshGrad = ctx.createLinearGradient(0, -r * 0.1, 0, 0);
+  fleshGrad.addColorStop(0, lighten(h.visual.flesh, 0.2));
+  fleshGrad.addColorStop(1, h.visual.flesh);
+  ctx.fillStyle = fleshGrad;
+  ctx.beginPath();
+  ctx.ellipse(0, 0, r * 0.92, r * 0.32, 0, Math.PI, Math.PI * 2);
+  ctx.fill();
+
+  // Seeds
+  if (h.visual.seeds > 0) {
+    ctx.fillStyle = h.visual.accent;
+    for (let i = 0; i < h.visual.seeds; i++) {
+      const k = (i + 0.5) / h.visual.seeds;
+      const sx = (k - 0.5) * r * 1.5;
+      const sy = -r * 0.08 + Math.sin(i * 2.3) * r * 0.05;
+      ctx.beginPath();
+      ctx.ellipse(sx, sy, r * 0.05, r * 0.08, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
+  // Edge shadow
+  ctx.strokeStyle = 'rgba(0,0,0,0.25)';
+  ctx.lineWidth = r * 0.04;
+  ctx.beginPath();
+  ctx.arc(0, 0, r, Math.PI, 0);
+  ctx.stroke();
+
+  ctx.restore();
+}
+
+// ─── Particles ───────────────────────────────────────────────────────────
+
+export function drawParticle(d: DrawCtx, p: Particle, now: number) {
+  const { ctx } = d;
+  const k = 1 - (now - p.born) / p.life;
+  if (k <= 0) return;
+  ctx.save();
+  ctx.globalAlpha = k;
+  ctx.fillStyle = p.color;
+  ctx.shadowColor = p.color;
+  ctx.shadowBlur = 8;
+  ctx.beginPath();
+  ctx.arc(p.x, p.y, p.size * k, 0, Math.PI * 2);
   ctx.fill();
   ctx.restore();
 }
 
-export function drawLeavingFood(d: DrawCtx, food: ActiveFood, progress: number) {
+// ─── Swipe trail ─────────────────────────────────────────────────────────
+
+export function drawTrail(d: DrawCtx, points: TrailPoint[], now: number) {
+  if (points.length < 2) return;
   const { ctx, scale } = d;
-  const kind = food.kind;
-  const thick = kind.thickness * scale;
-  const len = kind.length * scale;
-  const top = food.centerY - thick / 2;
-
-  // Split positions
-  const cutXs = [...food.cuts.map(c => c.x), food.leftX, food.leftX + len].sort((a, b) => a - b);
-  for (let i = 0; i < cutXs.length - 1; i++) {
-    const x0 = cutXs[i];
-    const x1 = cutXs[i + 1];
-    const w = x1 - x0;
-    if (w < 2) continue;
-    // Each piece tumbles independently; outer pieces fly farther/faster
-    const sideSign = (x0 + w / 2 - (food.leftX + len / 2)) > 0 ? 1 : -1;
-    const dx = sideSign * (100 + i * 8) * scale * progress;
-    const dy = (260 + i * 6) * scale * progress * progress;
-    const rot = sideSign * (0.18 + i * 0.04) * progress + (food.seed % 5) * 0.02;
-    const alpha = 1 - progress * 0.55;
-    ctx.save();
-    ctx.globalAlpha = alpha;
-    ctx.translate(x0 + w / 2 + dx, food.centerY + dy);
-    ctx.rotate(rot);
-    ctx.translate(-(x0 + w / 2), -food.centerY);
-
-    const grad = ctx.createLinearGradient(0, top, 0, top + thick);
-    grad.addColorStop(0, kind.accent);
-    grad.addColorStop(0.5, kind.body);
-    grad.addColorStop(1, kind.crust);
-    ctx.fillStyle = grad;
-    roundRect(ctx, x0, top, w, thick, Math.min(thick / 2, w / 2));
-    ctx.fill();
-    // cut face highlights
-    ctx.fillStyle = 'rgba(255,255,255,0.25)';
-    ctx.fillRect(x0, top, 2 * scale, thick);
-    ctx.fillRect(x1 - 2 * scale, top, 2 * scale, thick);
-    ctx.restore();
+  ctx.save();
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  for (let i = 1; i < points.length; i++) {
+    const a = points[i - 1];
+    const b = points[i];
+    const age = now - b.t;
+    const k = Math.max(0, 1 - age / 200); // fade over 200ms
+    if (k <= 0) continue;
+    const width = 18 * scale * k + 4 * scale;
+    // Outer glow
+    ctx.strokeStyle = `rgba(255, 240, 200, ${0.18 * k})`;
+    ctx.lineWidth = width * 1.8;
+    ctx.beginPath();
+    ctx.moveTo(a.x, a.y);
+    ctx.lineTo(b.x, b.y);
+    ctx.stroke();
+    // Bright core
+    ctx.strokeStyle = `rgba(255, 255, 255, ${0.9 * k})`;
+    ctx.lineWidth = width;
+    ctx.beginPath();
+    ctx.moveTo(a.x, a.y);
+    ctx.lineTo(b.x, b.y);
+    ctx.stroke();
   }
+  ctx.restore();
+}
+
+// ─── Misc ────────────────────────────────────────────────────────────────
+
+function lighten(hex: string, amount: number): string {
+  const m = /^#?([0-9a-f]{6})$/i.exec(hex);
+  if (!m) return hex;
+  const n = parseInt(m[1], 16);
+  let r = (n >> 16) & 0xff, g = (n >> 8) & 0xff, b = n & 0xff;
+  r = Math.min(255, r + Math.round((255 - r) * amount));
+  g = Math.min(255, g + Math.round((255 - g) * amount));
+  b = Math.min(255, b + Math.round((255 - b) * amount));
+  return `#${((r << 16) | (g << 8) | b).toString(16).padStart(6, '0')}`;
 }

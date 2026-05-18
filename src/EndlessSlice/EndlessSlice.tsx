@@ -4,15 +4,15 @@ import { StartScreen } from './components/StartScreen';
 import { EndScreen } from './components/EndScreen';
 import { useGameScore, Leaderboard } from '@shared/leaderboard';
 import { t } from './i18n';
-import { FOODS_PER_RUN } from './utils/food';
 import alteruUrl from './img/alteru.svg';
 import './EndlessSlice.less';
 
 export default function EndlessSlice() {
   const {
     canvasRef,
-    screen, score, combo, best, stats, foodIndex,
-    start, home, handleTap,
+    screen, score, lives, comboInSwipe, best, stats,
+    start, home,
+    onPointerDown, onPointerMove, onPointerUp,
   } = useEndlessSlice();
 
   const { isInAigram, submitScore, fetchGlobalLeaderboard, fetchFriendsLeaderboard } =
@@ -30,9 +30,19 @@ export default function EndlessSlice() {
       className="es-root"
       onPointerDown={(e) => {
         if (screen === 'playing') {
-          handleTap(e.clientX, e.clientY);
+          (e.target as Element).setPointerCapture?.(e.pointerId);
+          onPointerDown(e.clientX, e.clientY);
           e.preventDefault();
         }
+      }}
+      onPointerMove={(e) => {
+        if (screen === 'playing') onPointerMove(e.clientX, e.clientY);
+      }}
+      onPointerUp={() => {
+        if (screen === 'playing') onPointerUp();
+      }}
+      onPointerCancel={() => {
+        if (screen === 'playing') onPointerUp();
       }}
     >
       <canvas ref={canvasRef} className="es-canvas" />
@@ -44,20 +54,24 @@ export default function EndlessSlice() {
               <div className="es-hud__label">{t('score')}</div>
               <div className="es-hud__value">{score}</div>
             </div>
-            <div className="es-hud__cell es-hud__cell--mid">
-              <div className="es-hud__label">{t('food')}</div>
-              <div className="es-hud__value">
-                {foodIndex}<span className="es-hud__sub">/{FOODS_PER_RUN}</span>
-              </div>
-            </div>
             <div className="es-hud__cell es-hud__cell--right">
-              <div className="es-hud__label">{t('best')}</div>
-              <div className="es-hud__value">{best}</div>
+              <div className="es-hud__lives">
+                {[0, 1, 2].map(i => (
+                  <span
+                    key={i}
+                    className={`es-heart ${i < lives ? 'es-heart--on' : 'es-heart--off'}`}
+                    aria-hidden
+                  >
+                    <svg viewBox="0 0 24 24"><path d="M12 21s-7.5-4.8-9.6-9.2C.7 7.4 4 3 8.2 3c2 0 3.4 1 3.8 2.2C12.4 4 13.8 3 15.8 3 20 3 23.3 7.4 21.6 11.8 19.5 16.2 12 21 12 21z"/></svg>
+                  </span>
+                ))}
+              </div>
+              <div className="es-hud__label es-hud__label--right">{t('best')}: {best}</div>
             </div>
           </div>
-          {combo >= 2 && (
-            <div className={`es-combo es-combo--${Math.min(combo, 10)}`}>
-              ×{combo}
+          {comboInSwipe >= 2 && (
+            <div className={`es-combo es-combo--${Math.min(comboInSwipe, 10)}`}>
+              ×{comboInSwipe}
             </div>
           )}
         </>

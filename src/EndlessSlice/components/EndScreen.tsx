@@ -18,22 +18,18 @@ export function EndScreen({ stats, best, onAgain, onHome, onOpenLeaderboard }: P
           <div className="es-final__label">{t('final_score')}</div>
           <div className="es-final__value">{stats.finalScore}</div>
         </div>
-        <div className="es-stats">
+        <div className="es-stats es-stats--3">
           <div className="es-stats__cell">
             <div className="es-stats__label">{t('best')}</div>
             <div className="es-stats__value">{best}</div>
           </div>
           <div className="es-stats__cell">
-            <div className="es-stats__label">{t('cuts_total')}</div>
-            <div className="es-stats__value">{stats.totalCuts}</div>
+            <div className="es-stats__label">{t('sliced')}</div>
+            <div className="es-stats__value">{stats.sliced}</div>
           </div>
           <div className="es-stats__cell">
             <div className="es-stats__label">{t('max_combo')}</div>
             <div className="es-stats__value">×{stats.maxCombo}</div>
-          </div>
-          <div className="es-stats__cell">
-            <div className="es-stats__label">{t('food')}</div>
-            <div className="es-stats__value">{stats.foodsCleared}</div>
           </div>
         </div>
         <div className="es-buttons">
