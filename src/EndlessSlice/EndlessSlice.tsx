@@ -4,13 +4,14 @@ import { StartScreen } from './components/StartScreen';
 import { EndScreen } from './components/EndScreen';
 import { useGameScore, Leaderboard } from '@shared/leaderboard';
 import { t } from './i18n';
+import { FOODS_PER_RUN } from './utils/food';
 import alteruUrl from './img/alteru.svg';
 import './EndlessSlice.less';
 
 export default function EndlessSlice() {
   const {
     canvasRef,
-    screen, score, combo, best, stats,
+    screen, score, combo, best, stats, foodIndex,
     start, home, handleTap,
   } = useEndlessSlice();
 
@@ -28,10 +29,8 @@ export default function EndlessSlice() {
     <div
       className="es-root"
       onPointerDown={(e) => {
-        // Only register a slice when the pointer hits the canvas/play area.
-        // Overlays handle their own clicks.
         if (screen === 'playing') {
-          handleTap();
+          handleTap(e.clientX, e.clientY);
           e.preventDefault();
         }
       }}
@@ -45,14 +44,20 @@ export default function EndlessSlice() {
               <div className="es-hud__label">{t('score')}</div>
               <div className="es-hud__value">{score}</div>
             </div>
+            <div className="es-hud__cell es-hud__cell--mid">
+              <div className="es-hud__label">{t('food')}</div>
+              <div className="es-hud__value">
+                {foodIndex}<span className="es-hud__sub">/{FOODS_PER_RUN}</span>
+              </div>
+            </div>
             <div className="es-hud__cell es-hud__cell--right">
               <div className="es-hud__label">{t('best')}</div>
               <div className="es-hud__value">{best}</div>
             </div>
           </div>
           {combo >= 2 && (
-            <div className={`es-combo es-combo--${Math.min(combo, 12)}`}>
-              {t('combo', { n: combo })}
+            <div className={`es-combo es-combo--${Math.min(combo, 10)}`}>
+              ×{combo}
             </div>
           )}
         </>

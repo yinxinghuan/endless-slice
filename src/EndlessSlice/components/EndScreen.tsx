@@ -24,16 +24,16 @@ export function EndScreen({ stats, best, onAgain, onHome, onOpenLeaderboard }: P
             <div className="es-stats__value">{best}</div>
           </div>
           <div className="es-stats__cell">
-            <div className="es-stats__label">{t('food_count')}</div>
-            <div className="es-stats__value">{stats.foodsSliced}</div>
+            <div className="es-stats__label">{t('cuts_total')}</div>
+            <div className="es-stats__value">{stats.totalCuts}</div>
           </div>
           <div className="es-stats__cell">
-            <div className="es-stats__label">{t('perfect')}</div>
-            <div className="es-stats__value">{stats.perfectCount}</div>
+            <div className="es-stats__label">{t('max_combo')}</div>
+            <div className="es-stats__value">×{stats.maxCombo}</div>
           </div>
           <div className="es-stats__cell">
-            <div className="es-stats__label">Combo</div>
-            <div className="es-stats__value">{stats.maxCombo}</div>
+            <div className="es-stats__label">{t('food')}</div>
+            <div className="es-stats__value">{stats.foodsCleared}</div>
           </div>
         </div>
         <div className="es-buttons">

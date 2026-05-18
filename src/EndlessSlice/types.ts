@@ -1,39 +1,34 @@
 export type Screen = 'start' | 'playing' | 'end';
 
-export type Rating = 'perfect' | 'good' | 'ok' | 'miss';
-
 export interface FoodKind {
   id: string;
   label: string;
-  /** Visible food length in px on a 1080-wide design canvas */
+  /** Visible food length in design-units (1080-wide reference canvas) */
   length: number;
-  /** Visible food thickness in px */
+  /** Visible food thickness in design-units */
   thickness: number;
-  /** Body fill / accent / crust colors */
   body: string;
   accent: string;
   crust: string;
-  /** Number of target dashes (cuts). 1 dash = food split into 2 pieces. */
-  targets: number;
-  /** Pixels/second the scan line moves while this food is on board */
-  scanSpeed: number;
+}
+
+export interface Cut {
+  x: number;       // device-px, in screen space
+  born: number;    // performance.now() at creation
+  combo: number;   // combo when this cut was made (drives color)
 }
 
 export interface ActiveFood {
   kind: FoodKind;
-  /** World-x (px) where the food's left edge sits */
+  /** Current world-x of the food's left edge (animated during arriving/leaving) */
   leftX: number;
-  /** Centered Y on the board */
   centerY: number;
-  /** Target marks (world-x positions, left-to-right) */
-  marks: Array<{ x: number; cut: boolean; rating?: Rating }>;
-  /** Cuts (player-made slashes): world-x position + rating */
-  cuts: Array<{ x: number; rating: Rating }>;
-  /** Phase: arriving | active | leaving */
+  cuts: Cut[];
   phase: 'arriving' | 'active' | 'leaving';
-  /** seconds since this food entered active phase */
-  age: number;
-  /** seed for jitter / pieces flying */
+  /** Seconds remaining in the active phase */
+  remaining: number;
+  /** Original active duration for this food */
+  activeS: number;
   seed: number;
 }
 
@@ -41,15 +36,15 @@ export interface Impact {
   uid: number;
   x: number;
   y: number;
-  rating: Rating;
-  bonus: number;
+  text: string;
+  color: string;
   born: number;
 }
 
 export interface Stats {
   finalScore: number;
+  totalCuts: number;
   maxCombo: number;
-  foodsSliced: number;
-  perfectCount: number;
+  foodsCleared: number;
   isNewBest: boolean;
 }

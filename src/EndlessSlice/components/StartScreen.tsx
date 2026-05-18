@@ -7,8 +7,8 @@ interface Props {
   onOpenLeaderboard: () => void;
 }
 
-// Mini animated demo: a baguette, 3 dashed target marks, a sweeping scan line,
-// and a touch_app finger that pulses at each mark in sync. Loops forever.
+// Mini demo: a baguette with 6 slash marks appearing rapid-fire, with a finger
+// pulsing at each. Loops forever until first tap.
 function MiniDemo() {
   return (
     <div className="es-demo" aria-hidden>
@@ -25,12 +25,15 @@ function MiniDemo() {
         <rect x="6" y="35" width="348" height="78" rx="10" fill="none" stroke="rgba(0,0,0,0.35)" strokeWidth="1.5"/>
         {/* Baguette */}
         <rect x="40" y="50" width="280" height="48" rx="24" fill="url(#es-demo-body)"/>
-        {/* Target marks */}
-        <line x1="110" y1="42" x2="110" y2="106" stroke="rgba(255,255,255,0.85)" strokeWidth="1.5" strokeDasharray="4 3"/>
-        <line x1="180" y1="42" x2="180" y2="106" stroke="rgba(255,255,255,0.85)" strokeWidth="1.5" strokeDasharray="4 3"/>
-        <line x1="250" y1="42" x2="250" y2="106" stroke="rgba(255,255,255,0.85)" strokeWidth="1.5" strokeDasharray="4 3"/>
-        {/* Scan line */}
-        <line className="es-demo__scan" x1="0" y1="38" x2="0" y2="110" stroke="#ffd24a" strokeWidth="2.5"/>
+        {/* Slash marks appearing in sequence */}
+        {[80, 120, 160, 200, 240, 280].map((x, i) => (
+          <line
+            key={x}
+            className={`es-demo__slash es-demo__slash--${i}`}
+            x1={x} y1="42" x2={x} y2="106"
+            stroke="#ffd24a" strokeWidth="3"
+          />
+        ))}
       </svg>
       <div className="es-demo__finger">
         <TouchAppIcon className="es-demo__finger-icon" />

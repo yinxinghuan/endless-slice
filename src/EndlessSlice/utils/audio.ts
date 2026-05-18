@@ -1,4 +1,4 @@
-// Tiny synth helpers — perfect / good / ok cut tones + breathing ambient.
+// Punchy chop SFX with combo-driven pitch rise + breathing ambient.
 
 let ctx: AudioContext | null = null;
 function ac(): AudioContext {
@@ -25,33 +25,30 @@ function tone(freq: number, dur: number, gainPeak: number, type: OscillatorType 
     o.frequency.value = freq;
     o.detune.value = detune;
     const g = c.createGain();
-    g.gain.value = 0;
-    g.gain.linearRampToValueAtTime(gainPeak, now + 0.005);
+    g.gain.setValueAtTime(0.0001, now);
+    g.gain.linearRampToValueAtTime(gainPeak, now + 0.004);
     g.gain.exponentialRampToValueAtTime(0.0001, now + dur);
     o.connect(g).connect(c.destination);
     o.start(now);
-    o.stop(now + dur + 0.05);
+    o.stop(now + dur + 0.04);
   } catch { /* ignore */ }
 }
 
-// Knife-swoosh: a quick noise burst with a high-pass feel.
-function swoosh(gainPeak = 0.06) {
+function noiseBurst(dur: number, gainPeak: number, hpHz: number) {
   try {
     const c = ac();
     const now = c.currentTime;
-    const dur = 0.12;
     const buf = c.createBuffer(1, Math.floor(c.sampleRate * dur), c.sampleRate);
     const data = buf.getChannelData(0);
     for (let i = 0; i < data.length; i++) {
-      // exponentially decaying noise
       const t = i / data.length;
-      data[i] = (Math.random() * 2 - 1) * Math.pow(1 - t, 2);
+      data[i] = (Math.random() * 2 - 1) * Math.pow(1 - t, 2.2);
     }
     const src = c.createBufferSource();
     src.buffer = buf;
     const hp = c.createBiquadFilter();
     hp.type = 'highpass';
-    hp.frequency.value = 1800;
+    hp.frequency.value = hpHz;
     const g = c.createGain();
     g.gain.value = gainPeak;
     src.connect(hp).connect(g).connect(c.destination);
@@ -59,35 +56,32 @@ function swoosh(gainPeak = 0.06) {
   } catch { /* ignore */ }
 }
 
-export function sfxPerfect() {
-  swoosh(0.05);
-  tone(880, 0.16, 0.10, 'triangle');
-  tone(1320, 0.18, 0.06, 'sine', 4);
-}
-export function sfxGood() {
-  swoosh(0.04);
-  tone(660, 0.14, 0.09, 'triangle');
-}
-export function sfxOk() {
-  swoosh(0.03);
-  tone(440, 0.14, 0.08, 'sine');
-}
-export function sfxMiss() {
-  tone(140, 0.22, 0.10, 'sawtooth');
-  tone(110, 0.30, 0.06, 'sawtooth', -10);
-}
-export function sfxFoodCleared() {
-  tone(523, 0.10, 0.05, 'triangle');
-  setTimeout(() => tone(784, 0.16, 0.06, 'triangle'), 80);
-}
-export function sfxGameOver() {
-  tone(330, 0.30, 0.10, 'sawtooth');
-  setTimeout(() => tone(220, 0.45, 0.08, 'sawtooth'), 180);
-  setTimeout(() => tone(165, 0.60, 0.06, 'sawtooth'), 380);
+/** Chop SFX. Combo (1..10) drives pitch + brightness. */
+export function sfxChop(combo: number) {
+  const c = Math.max(1, Math.min(10, combo));
+  // Low thump (the impact)
+  tone(60 + c * 6, 0.10, 0.18, 'sawtooth');
+  tone(140 + c * 12, 0.07, 0.10, 'square');
+  // Slice tone (the cleanness)
+  tone(520 + c * 80, 0.10 + c * 0.005, 0.08, 'triangle');
+  // Knife brightness
+  noiseBurst(0.08, 0.06, 1800 + c * 120);
 }
 
-// Breathing ambient: gentle low-pad that swells, holds, fades, then full silence.
-// Per memory rule: real silent gaps required.
+export function sfxFoodCleared(pieces: number) {
+  const base = 440 + Math.min(pieces, 20) * 18;
+  tone(base, 0.11, 0.06, 'triangle');
+  setTimeout(() => tone(base * 1.5, 0.16, 0.07, 'triangle'), 70);
+  setTimeout(() => tone(base * 2.0, 0.20, 0.05, 'triangle'), 140);
+}
+
+export function sfxRunEnd() {
+  tone(660, 0.18, 0.10, 'triangle');
+  setTimeout(() => tone(880, 0.22, 0.09, 'triangle'), 130);
+  setTimeout(() => tone(1320, 0.30, 0.07, 'triangle'), 280);
+}
+
+// Breathing ambient: gentle low-pad that swells, holds, fades, then silence.
 let ambientStop: (() => void) | null = null;
 export function startAmbient() {
   stopAmbient();
@@ -97,10 +91,10 @@ export function startAmbient() {
 
   const cycle = () => {
     if (!alive) return;
-    const rise = 5 + Math.random() * 3;       // 5–8s
-    const hold = 8 + Math.random() * 8;       // 8–16s
-    const fall = 6 + Math.random() * 4;       // 6–10s
-    const silence = 7 + Math.random() * 9;    // 7–16s
+    const rise = 5 + Math.random() * 3;
+    const hold = 8 + Math.random() * 8;
+    const fall = 6 + Math.random() * 4;
+    const silence = 7 + Math.random() * 9;
     const total = rise + hold + fall;
     const start = c.currentTime + 0.05;
 
@@ -116,7 +110,7 @@ export function startAmbient() {
     lp.frequency.value = 600;
     const g = c.createGain();
     g.gain.setValueAtTime(0.0001, start);
-    const peak = 0.018 + Math.random() * 0.01;
+    const peak = 0.014 + Math.random() * 0.008;
     g.gain.exponentialRampToValueAtTime(peak, start + rise);
     g.gain.setValueAtTime(peak, start + rise + hold);
     g.gain.exponentialRampToValueAtTime(0.0001, start + rise + hold + fall);

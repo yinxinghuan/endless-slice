@@ -132,28 +132,31 @@ def main():
         fill=(0, 0, 0, 90),
     )
 
-    # Target dashes — three uncut marks on the food
+    # Many slash marks across the food — communicates the "tap-to-chop" mechanic.
     food_top = H // 2 - 36
-    food_bot = H // 2 + 176
-    food_left, food_right = 130, 130 + 760
-    mark_xs = [food_left + 760 * frac for frac in (0.22, 0.5, 0.78)]
-    for mx in mark_xs:
-        for yy in range(food_top, food_bot, 12):
-            d.line([(mx, yy), (mx, yy + 7)], fill=(255, 255, 255, 220), width=3)
-
-    # Scan line (glowing yellow vertical)
-    scan_x = food_left + int(760 * 0.5) + 14
-    for w in range(36, 0, -2):
-        a = int(40 * (1 - w / 36))
-        d.line([(scan_x - w, food_top - 30), (scan_x - w, food_bot + 30)],
-               fill=(255, 210, 74, a), width=2)
-    d.line([(scan_x, food_top - 36), (scan_x, food_bot + 36)],
-           fill=(255, 232, 130, 255), width=6)
-
-    # Cut marks (golden vertical slash at already-cut spots)
-    for cx in [food_left + int(760 * 0.22), food_left + int(760 * 0.78)]:
-        d.line([(cx, food_top - 18), (cx, food_bot + 18)], fill=(255, 210, 74, 255), width=5)
-        d.line([(cx, food_top + 12), (cx, food_bot - 12)], fill=(0, 0, 0, 150), width=2)
+    food_bot = H // 2 + 196
+    food_left = 130
+    food_len = 760
+    # Slash positions: dense, not perfectly even (mindless-tap energy)
+    slash_xs_frac = [0.10, 0.18, 0.26, 0.34, 0.40, 0.49, 0.57, 0.64, 0.72, 0.80, 0.88]
+    slash_colors = [
+        (255, 250, 204), (255, 210, 74), (255, 210, 74), (255, 174, 62),
+        (255, 174, 62), (255, 122, 60), (255, 79, 94), (255, 79, 94),
+        (255, 174, 62), (255, 210, 74), (255, 250, 204),
+    ]
+    for frac, color in zip(slash_xs_frac, slash_colors):
+        cx = food_left + int(food_len * frac)
+        # outer glow
+        for wd in range(10, 1, -2):
+            a = int(35 * (1 - wd / 10))
+            d.line([(cx, food_top - 18), (cx, food_bot + 18)],
+                   fill=(color[0], color[1], color[2], a), width=wd)
+        # core slash
+        d.line([(cx, food_top - 22), (cx, food_bot + 22)],
+               fill=color + (255,), width=4)
+        # dark inset gap
+        d.line([(cx, food_top + 10), (cx, food_bot - 10)],
+               fill=(0, 0, 0, 170), width=2)
 
     # ---- Title ----
     title = "ENDLESS SLICE"
@@ -171,7 +174,7 @@ def main():
     d.text((tx, ty + 4), title, font=title_font, fill=(255, 210, 74, 255))
 
     # Tagline
-    tag = "Tap on the beat. Endless slices."
+    tag = "Tap to chop. The faster, the higher."
     tag_font = find_font(FONT_PATHS_TAG, 38)
     bbox = d.textbbox((0, 0), tag, font=tag_font)
     txw = bbox[2] - bbox[0]
@@ -192,8 +195,8 @@ def main():
         d.text((cx - sw // 2 + 2, cy + 60 + 2), sub, font=small_font, fill=(0, 0, 0, 200))
         d.text((cx - sw // 2, cy + 60), sub, font=small_font, fill=(255, 255, 255, 240))
 
-    callout(food_left + int(760 * 0.22), food_top - 140, "PERFECT", "+300", (255, 210, 74, 255))
-    callout(food_left + int(760 * 0.78), food_top - 110, "GOOD", "+100", (155, 227, 107, 255))
+    callout(food_left + int(food_len * 0.30), food_top - 140, "×7", "+70", (255, 122, 60, 255))
+    callout(food_left + int(food_len * 0.72), food_top - 110, "TAP!", "+100", (255, 210, 74, 255))
 
     # AlterU watermark text
     wm_font = find_font(FONT_PATHS_TAG, 26)

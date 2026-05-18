@@ -37,7 +37,16 @@
 
 .es-hud__cell {
   text-align: left;
+  flex: 1;
+  &--mid   { text-align: center; }
   &--right { text-align: right; }
+}
+
+.es-hud__sub {
+  font-size: 16px;
+  opacity: 0.55;
+  font-weight: 700;
+  margin-left: 2px;
 }
 
 .es-hud__label {
@@ -56,23 +65,23 @@
 
 .es-combo {
   position: absolute;
-  top: 78px;
+  top: 84px;
   left: 0;
   right: 0;
   text-align: center;
   pointer-events: none;
-  font-size: 28px;
+  font-size: 44px;
   font-weight: 800;
   color: #ffd24a;
-  text-shadow: 0 2px 12px rgba(255, 210, 74, 0.45), 0 2px 6px rgba(0,0,0,0.7);
-  letter-spacing: 0.05em;
+  text-shadow: 0 2px 12px rgba(255, 210, 74, 0.55), 0 2px 6px rgba(0,0,0,0.7);
+  letter-spacing: 0.02em;
   z-index: 5;
-  animation: es-combo-pop 220ms ease-out;
+  animation: es-combo-pop 200ms ease-out;
 
-  &--3, &--4 { font-size: 32px; }
-  &--5, &--6 { font-size: 36px; color: #ffae3e; }
-  &--7, &--8 { font-size: 40px; color: #ff7a3c; }
-  &--9, &--10, &--11, &--12 { font-size: 48px; color: #ff4f5e; }
+  &--3, &--4 { font-size: 54px; }
+  &--5, &--6 { font-size: 64px; color: #ffae3e; }
+  &--7, &--8 { font-size: 74px; color: #ff7a3c; }
+  &--9, &--10 { font-size: 84px; color: #ff4f5e; }
 }
 
 @keyframes es-combo-pop {
@@ -182,44 +191,56 @@
   height: auto;
 }
 
-.es-demo__scan {
-  animation: es-demo-scan 3.8s linear infinite;
-  filter: drop-shadow(0 0 6px #ffd24a);
+// Each slash mark fades in at a staggered moment, all reset together at the loop boundary.
+.es-demo__slash {
+  opacity: 0;
+  filter: drop-shadow(0 0 4px #ffd24a);
+  animation: es-demo-slash 2.4s linear infinite;
+  &--0 { animation-delay: 0.10s; }
+  &--1 { animation-delay: 0.30s; }
+  &--2 { animation-delay: 0.50s; }
+  &--3 { animation-delay: 0.70s; }
+  &--4 { animation-delay: 0.90s; }
+  &--5 { animation-delay: 1.10s; }
 }
-@keyframes es-demo-scan {
-  0%   { transform: translateX(40px); }
-  100% { transform: translateX(320px); }
+@keyframes es-demo-slash {
+  0%   { opacity: 0; transform: scaleY(1.4); }
+  4%   { opacity: 1; transform: scaleY(1.4); }
+  8%   { opacity: 1; transform: scaleY(1.0); }
+  // hold the cut visible until end of cycle
+  85%  { opacity: 1; transform: scaleY(1.0); }
+  100% { opacity: 0; transform: scaleY(1.0); }
 }
 
+// Finger jumps to each mark in time with the staggered slashes
 .es-demo__finger {
   position: absolute;
-  top: 60%;
-  left: 0;
-  width: 28px;
-  height: 28px;
-  animation: es-demo-finger-x 3.8s linear infinite, es-demo-finger-tap 1.27s ease-in-out infinite;
+  top: 50%;
+  width: 30px;
+  height: 30px;
+  animation: es-demo-finger 2.4s steps(1, end) infinite;
   pointer-events: none;
 }
 .es-demo__finger-icon {
   width: 100%;
   height: 100%;
   fill: #fff;
-  filter: drop-shadow(0 1px 3px rgba(0,0,0,0.6));
+  filter: drop-shadow(0 1px 3px rgba(0,0,0,0.65));
+  animation: es-demo-finger-tap 0.4s ease-out infinite;
 }
-@keyframes es-demo-finger-x {
-  // sync with scan: roughly hit each mark (110, 180, 250) at 1/3, 2/3, end of cycle
-  0%   { left: 6%;  }
-  // pass mark1 (~28%)
-  25%  { left: 24%; }
-  // pass mark2 (~48%)
-  50%  { left: 44%; }
-  // pass mark3 (~67%)
-  75%  { left: 64%; }
-  100% { left: 84%; }
+@keyframes es-demo-finger {
+  0%    { left: 17%; }
+  16%   { left: 28%; }
+  33%   { left: 39%; }
+  49%   { left: 50%; }
+  65%   { left: 61%; }
+  82%   { left: 72%; }
+  100%  { left: 72%; }
 }
 @keyframes es-demo-finger-tap {
-  0%, 100% { transform: translateY(0)   scale(1);   }
-  50%      { transform: translateY(-6px) scale(0.92); }
+  0%   { transform: translateY(-8px) scale(0.92); opacity: 0.75; }
+  60%  { transform: translateY(0)    scale(1);    opacity: 1; }
+  100% { transform: translateY(-8px) scale(0.92); opacity: 0.75; }
 }
 
 // ─── End screen ──────────────────────────────────────────────────────────
