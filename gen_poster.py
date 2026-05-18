@@ -1,23 +1,26 @@
 #!/usr/bin/env python3
 """
-Endless Slice — 1024x1024 poster (Fruit-Ninja swipe edition).
+BRAIN ROT — 1024x1024 poster.
 
 Layout:
-  - Warm gradient background w/ subtle vignette
-  - Big "ENDLESS SLICE" title at top (must stay above bottom 1/3)
-  - A tomato sliced in half mid-flight, juice splatter, by a big white swipe trail
-  - A banana arcing up (uncut), a bomb in corner with sparkle
-  - "×3 +30" callout on swipe
-  - AlterU watermark bottom
+  - Magenta → purple gradient background with glow
+  - HUGE "BRAIN ROT" title at top (chromatic aberration)
+  - Tralalero (sliced halves) in the middle with juice splat
+  - Tung + Patapim flying around (uncut)
+  - Bombardiro lurking in corner
+  - Big white swipe trail arcing through tralalero
+  - "×4" combo callout
+  - AlterU watermark
 """
 import os
 import math
 import random
 from PIL import Image, ImageDraw, ImageFont, ImageFilter
 
-random.seed(7)
+random.seed(11)
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
+SPRITES = os.path.join(ROOT, "src/EndlessSlice/img/sprites")
 OUT_PATH = os.path.join(ROOT, "public/poster.png")
 os.makedirs(os.path.dirname(OUT_PATH), exist_ok=True)
 
@@ -46,91 +49,78 @@ def find_font(paths, size):
     return ImageFont.load_default()
 
 
-def vertical_gradient(size, top, bot):
+def radial_bg(size):
     w, h = size
-    img = Image.new("RGB", (1, h))
+    img = Image.new("RGB", size, (12, 11, 28))
     px = img.load()
+    cx, cy = w * 0.45, h * 0.4
+    rmax = max(w, h) * 0.95
     for y in range(h):
-        k = y / max(h - 1, 1)
-        px[0, y] = (
-            int(top[0] * (1 - k) + bot[0] * k),
-            int(top[1] * (1 - k) + bot[1] * k),
-            int(top[2] * (1 - k) + bot[2] * k),
-        )
-    return img.resize((w, h))
+        for x in range(w):
+            d = math.hypot(x - cx, y - cy) / rmax
+            d = min(1, d)
+            if d < 0.4:
+                k = d / 0.4
+                r = int(180 * (1 - k) + 90 * k)
+                g = int(70 * (1 - k) + 50 * k)
+                b = int(130 * (1 - k) + 110 * k)
+            else:
+                k = (d - 0.4) / 0.6
+                r = int(90 * (1 - k) + 12 * k)
+                g = int(50 * (1 - k) + 11 * k)
+                b = int(110 * (1 - k) + 28 * k)
+            px[x, y] = (r, g, b)
+    return img.convert("RGBA")
 
 
-def draw_tomato_half(img, cx, cy, r, rot_deg, color_body, color_flesh, color_seed):
-    """Draw a tomato half (semicircle) rotated."""
-    # Render half on transparent layer then paste with rotation
-    pad = int(r * 1.2)
-    size = pad * 2
-    layer = Image.new("RGBA", (size, size), (0, 0, 0, 0))
-    pd = ImageDraw.Draw(layer)
-    # Body half-disk (upper half in local coords)
-    pd.pieslice([pad - r, pad - r, pad + r, pad + r], 180, 360, fill=color_body)
-    # Flesh strip (semi-ellipse along cut)
-    pd.chord([pad - int(r * 0.95), pad - int(r * 0.3), pad + int(r * 0.95), pad + int(r * 0.05)],
-             0, 180, fill=color_flesh)
-    # Seeds
-    for i in range(5):
-        sx = pad - int(r * 0.65) + i * int(r * 0.32)
-        sy = pad - int(r * 0.06)
-        pd.ellipse([sx - 4, sy - 6, sx + 4, sy + 6], fill=color_seed)
-    # Edge shadow
-    pd.arc([pad - r, pad - r, pad + r, pad + r], 180, 360, fill=(0, 0, 0, 80), width=3)
-    layer = layer.rotate(rot_deg, resample=Image.BICUBIC)
-    img.paste(layer, (cx - size // 2, cy - size // 2), layer)
+def load_sprite(slug):
+    p = os.path.join(SPRITES, f"{slug}.png")
+    return Image.open(p).convert("RGBA")
 
 
-def draw_banana(img, cx, cy, rot_deg):
-    pad = 160
-    size = pad * 2
-    layer = Image.new("RGBA", (size, size), (0, 0, 0, 0))
-    pd = ImageDraw.Draw(layer)
-    pd.ellipse([pad - 130, pad - 40, pad + 130, pad + 40], fill=(245, 198, 58))
-    pd.ellipse([pad - 124, pad - 12, pad + 124, pad + 36], fill=(255, 220, 120))
-    pd.ellipse([pad - 134, pad - 4, pad - 118, pad + 16], fill=(122, 90, 24))
-    pd.ellipse([pad + 118, pad - 4, pad + 134, pad + 16], fill=(122, 90, 24))
-    layer = layer.rotate(rot_deg, resample=Image.BICUBIC)
-    img.paste(layer, (cx - size // 2, cy - size // 2), layer)
+def place(canvas, sprite, cx, cy, size, rot=0):
+    s = sprite.copy()
+    longer = max(s.size)
+    if longer != size:
+        ratio = size / longer
+        s = s.resize((int(s.size[0] * ratio), int(s.size[1] * ratio)), Image.LANCZOS)
+    if rot:
+        s = s.rotate(rot, resample=Image.BICUBIC, expand=True)
+    w, h = s.size
+    canvas.alpha_composite(s, (cx - w // 2, cy - h // 2))
 
 
-def draw_bomb(img, cx, cy, r):
-    pad = r + 40
-    size = pad * 2
-    layer = Image.new("RGBA", (size, size), (0, 0, 0, 0))
-    pd = ImageDraw.Draw(layer)
-    # Body
-    pd.ellipse([pad - r, pad - r, pad + r, pad + r], fill=(28, 28, 32))
-    # Highlight
-    pd.ellipse([pad - int(r * 0.7), pad - int(r * 0.7), pad - int(r * 0.2), pad - int(r * 0.2)],
-               fill=(70, 70, 76))
-    # Fuse
-    pd.line([(pad, pad - r + 4), (pad + 18, pad - r - 22)], fill=(138, 107, 58), width=5)
-    # Spark glow
-    for rr in range(18, 4, -3):
-        a = int(50 * (1 - rr / 18))
-        pd.ellipse([pad + 18 - rr, pad - r - 22 - rr, pad + 18 + rr, pad - r - 22 + rr],
-                   fill=(255, 210, 74, a))
-    pd.ellipse([pad + 13, pad - r - 27, pad + 23, pad - r - 17], fill=(255, 230, 130))
-    img.paste(layer, (cx - size // 2, cy - size // 2), layer)
+def place_half(canvas, sprite, cx, cy, size, rot, side):
+    """Crop sprite to one half (left/right of vertical centerline before rotation), then rotate."""
+    s = sprite.copy()
+    longer = max(s.size)
+    if longer != size:
+        ratio = size / longer
+        s = s.resize((int(s.size[0] * ratio), int(s.size[1] * ratio)), Image.LANCZOS)
+    w, h = s.size
+    if side == 'l':
+        s = s.crop((0, 0, w // 2, h))
+    else:
+        s = s.crop((w // 2, 0, w, h))
+    if rot:
+        s = s.rotate(rot, resample=Image.BICUBIC, expand=True)
+    ww, hh = s.size
+    canvas.alpha_composite(s, (cx - ww // 2, cy - hh // 2))
 
 
 def draw_swipe_trail(img, points):
-    """Big white glow swipe trail through provided control points."""
     overlay = Image.new("RGBA", (W, H), (0, 0, 0, 0))
     od = ImageDraw.Draw(overlay)
-    # Outer glow first (thick + low alpha)
-    for width, alpha in [(64, 35), (40, 60), (24, 110), (12, 200)]:
+    # Outer magenta glow
+    for width, color in [(70, (255, 60, 200, 30)),
+                         (44, (255, 100, 200, 70)),
+                         (24, (255, 220, 130, 200))]:
         for i in range(len(points) - 1):
-            od.line([points[i], points[i + 1]], fill=(255, 250, 220, alpha), width=width)
-    # Bright core
+            od.line([points[i], points[i + 1]], fill=color, width=width)
+    # Bright white core
     for i in range(len(points) - 1):
-        od.line([points[i], points[i + 1]], fill=(255, 255, 255, 255), width=6)
-    # Slight blur for soft glow
-    blurred = overlay.filter(ImageFilter.GaussianBlur(radius=1.2))
-    img.alpha_composite(blurred)
+        od.line([points[i], points[i + 1]], fill=(255, 255, 255, 255), width=8)
+    img.alpha_composite(overlay.filter(ImageFilter.GaussianBlur(radius=1.2)))
 
 
 def draw_juice_splatter(img, cx, cy, n, color):
@@ -138,11 +128,10 @@ def draw_juice_splatter(img, cx, cy, n, color):
     pd = ImageDraw.Draw(layer)
     for _ in range(n):
         a = random.random() * math.pi * 2
-        d = random.uniform(30, 200)
+        d = random.uniform(40, 230)
         x = cx + math.cos(a) * d
-        y = cy + math.sin(a) * d - random.uniform(0, 40)
-        r = random.uniform(4, 14)
-        # Glow
+        y = cy + math.sin(a) * d - random.uniform(0, 50)
+        r = random.uniform(5, 18)
         for rr in range(int(r * 2), int(r), -2):
             aa = int(30 * (1 - rr / (r * 2)))
             pd.ellipse([x - rr, y - rr, x + rr, y + rr], fill=color + (aa,))
@@ -151,69 +140,71 @@ def draw_juice_splatter(img, cx, cy, n, color):
 
 
 def main():
-    bg = vertical_gradient((W, H), (74, 44, 26), (14, 8, 5)).convert("RGBA")
+    bg = radial_bg((W, H))
 
-    # Banana arcing up (uncut)
-    draw_banana(bg, 200, 720, -22)
+    # Load sprites
+    tralalero = load_sprite("tralalero")
+    tung      = load_sprite("tung")
+    patapim   = load_sprite("patapim")
+    bombardiro = load_sprite("bombardiro")
+    cappuccino = load_sprite("cappuccino")
 
-    # Bomb corner
-    draw_bomb(bg, 880, 820, 58)
+    # Decoy characters scattered (uncut, in mid-flight)
+    place(bg, tung, 200, 760, 220, rot=-18)
+    place(bg, patapim, 850, 760, 220, rot=22)
+    place(bg, bombardiro, 880, 360, 180, rot=-12)
+    place(bg, cappuccino, 130, 410, 170, rot=14)
 
-    # Tomato halves
-    cx, cy = 540, 580
-    # Half A — flying up-left
-    draw_tomato_half(bg, cx - 90, cy - 50, 110,
-                     rot_deg=-25, color_body=(226, 59, 59),
-                     color_flesh=(255, 154, 138), color_seed=(58, 168, 74))
-    # Half B — flying down-right
-    draw_tomato_half(bg, cx + 95, cy + 50, 110,
-                     rot_deg=155, color_body=(226, 59, 59),
-                     color_flesh=(255, 154, 138), color_seed=(58, 168, 74))
+    # Tralalero — two halves splayed apart at center
+    place_half(bg, tralalero, 460, 560, 360, rot=-22, side='l')
+    place_half(bg, tralalero, 600, 580, 360, rot=22,  side='r')
 
-    # Juice splatter
-    draw_juice_splatter(bg, cx, cy, 18, (255, 130, 120))
+    # Juice splat (blue, shark blood)
+    draw_juice_splatter(bg, 530, 580, 22, (90, 180, 220))
 
-    # Swipe trail crossing through the tomato
-    pts = [(60, 480), (260, 540), (cx - 30, cy + 5), (cx + 90, cy - 60), (760, 380), (980, 220)]
+    # Swipe trail crossing through the cut zone
+    pts = [(60, 460), (260, 540), (510, 560), (720, 500), (940, 420)]
     draw_swipe_trail(bg, pts)
 
     d = ImageDraw.Draw(bg, "RGBA")
 
-    # Title
-    title = "ENDLESS SLICE"
-    title_font = find_font(FONT_PATHS_BOLD, 160)
+    # Title — BRAIN ROT with chromatic aberration
+    title = "BRAIN ROT"
+    title_font = find_font(FONT_PATHS_BOLD, 200)
     bbox = d.textbbox((0, 0), title, font=title_font)
     tw = bbox[2] - bbox[0]
     tx = (W - tw) // 2
-    ty = 80
-    d.text((tx + 6, ty + 8), title, font=title_font, fill=(0, 0, 0, 220))
-    d.text((tx, ty), title, font=title_font, fill=(255, 248, 200, 255))
-    d.text((tx, ty + 4), title, font=title_font, fill=(255, 210, 74, 255))
+    ty = 70
+    # Chromatic offsets
+    d.text((tx - 8, ty), title, font=title_font, fill=(80, 230, 255, 200))   # cyan
+    d.text((tx + 8, ty), title, font=title_font, fill=(255, 80, 200, 200))   # magenta
+    d.text((tx + 4, ty + 8), title, font=title_font, fill=(0, 0, 0, 220))    # dark shadow
+    d.text((tx, ty), title, font=title_font, fill=(255, 255, 255, 255))      # white core
 
     # Tagline
-    tag = "Swipe to slice. Dodge the bombs."
+    tag = "Swipe to slash the AI rot."
     tag_font = find_font(FONT_PATHS_TAG, 38)
     bbox = d.textbbox((0, 0), tag, font=tag_font)
     txw = bbox[2] - bbox[0]
-    d.text(((W - txw) // 2 + 2, 256), tag, font=tag_font, fill=(0, 0, 0, 200))
-    d.text(((W - txw) // 2, 254), tag, font=tag_font, fill=(255, 240, 200, 230))
+    d.text(((W - txw) // 2 + 2, 300 + 2), tag, font=tag_font, fill=(0, 0, 0, 200))
+    d.text(((W - txw) // 2, 300), tag, font=tag_font, fill=(255, 240, 200, 240))
 
-    # Combo callout
-    big = find_font(FONT_PATHS_BOLD, 90)
-    sub = find_font(FONT_PATHS_BOLD, 44)
-    s = "×3"
+    # Combo callout near the top-right of the swipe
+    big = find_font(FONT_PATHS_BOLD, 120)
+    sub = find_font(FONT_PATHS_BOLD, 52)
+    s = "×4"
     bbox = d.textbbox((0, 0), s, font=big)
     sw = bbox[2] - bbox[0]
-    d.text((780 - sw // 2 + 4, 320 + 4), s, font=big, fill=(0, 0, 0, 200))
-    d.text((780 - sw // 2, 320), s, font=big, fill=(255, 122, 60, 255))
-    s2 = "+50"
+    d.text((830 - sw // 2 + 6, 410 + 6), s, font=big, fill=(0, 0, 0, 220))
+    d.text((830 - sw // 2, 410), s, font=big, fill=(255, 122, 60, 255))
+    s2 = "MULTI"
     bbox2 = d.textbbox((0, 0), s2, font=sub)
     s2w = bbox2[2] - bbox2[0]
-    d.text((780 - s2w // 2 + 2, 420 + 2), s2, font=sub, fill=(0, 0, 0, 200))
-    d.text((780 - s2w // 2, 420), s2, font=sub, fill=(255, 255, 255, 240))
+    d.text((830 - s2w // 2 + 2, 540 + 2), s2, font=sub, fill=(0, 0, 0, 200))
+    d.text((830 - s2w // 2, 540), s2, font=sub, fill=(255, 220, 130, 240))
 
     # Watermark
-    wm_font = find_font(FONT_PATHS_TAG, 26)
+    wm_font = find_font(FONT_PATHS_TAG, 28)
     wm = "AlterU"
     bbox = d.textbbox((0, 0), wm, font=wm_font)
     ww = bbox[2] - bbox[0]

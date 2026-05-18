@@ -10,7 +10,7 @@ import './EndlessSlice.less';
 export default function EndlessSlice() {
   const {
     canvasRef,
-    screen, score, lives, comboInSwipe, best, stats,
+    screen, score, lives, comboInSwipe, tierLabel, best, stats,
     start, home,
     onPointerDown, onPointerMove, onPointerUp,
   } = useEndlessSlice();
@@ -70,8 +70,14 @@ export default function EndlessSlice() {
             </div>
           </div>
           {comboInSwipe >= 2 && (
-            <div className={`es-combo es-combo--${Math.min(comboInSwipe, 10)}`}>
-              ×{comboInSwipe}
+            <div className={`es-combo es-combo--${Math.min(comboInSwipe, 15)}`}>
+              <span className="es-combo__x">×</span>
+              <span className="es-combo__n">{comboInSwipe}</span>
+            </div>
+          )}
+          {tierLabel && (
+            <div key={tierLabel + score} className={`es-tier es-tier--${tierLabel.toLowerCase()}`}>
+              {tierLabel}
             </div>
           )}
         </>

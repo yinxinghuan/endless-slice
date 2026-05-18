@@ -26,12 +26,16 @@
   right: 0;
   display: flex;
   justify-content: space-between;
-  padding: 18px 22px;
+  padding: 16px 20px;
   pointer-events: none;
   z-index: 5;
 
   &--top {
     top: 0;
+    // Soft gradient backing so HUD reads on any background
+    background: linear-gradient(180deg, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0) 100%);
+    padding-top: 22px;
+    padding-bottom: 28px;
   }
 }
 
@@ -61,38 +65,119 @@
 }
 
 .es-hud__label {
-  font-size: 12px;
-  letter-spacing: 0.12em;
+  font-size: 10px;
+  letter-spacing: 0.22em;
   text-transform: uppercase;
-  opacity: 0.7;
+  opacity: 0.6;
+  font-weight: 700;
 }
 
 .es-hud__value {
-  font-size: 30px;
+  font-size: 34px;
   font-weight: 800;
   line-height: 1;
-  text-shadow: 0 2px 8px rgba(0,0,0,0.6);
+  letter-spacing: -0.01em;
+  background: linear-gradient(180deg, #fff 0%, #ffd24a 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(0 2px 6px rgba(0,0,0,0.6));
 }
 
 .es-combo {
   position: absolute;
-  top: 84px;
+  top: 88px;
   left: 0;
   right: 0;
   text-align: center;
   pointer-events: none;
-  font-size: 44px;
-  font-weight: 800;
-  color: #ffd24a;
-  text-shadow: 0 2px 12px rgba(255, 210, 74, 0.55), 0 2px 6px rgba(0,0,0,0.7);
-  letter-spacing: 0.02em;
   z-index: 5;
-  animation: es-combo-pop 200ms ease-out;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  filter: drop-shadow(0 4px 18px rgba(255, 210, 74, 0.55))
+          drop-shadow(0 2px 6px rgba(0,0,0,0.7));
+  animation: es-combo-pop 180ms cubic-bezier(.34,1.56,.64,1);
 
-  &--3, &--4 { font-size: 54px; }
-  &--5, &--6 { font-size: 64px; color: #ffae3e; }
-  &--7, &--8 { font-size: 74px; color: #ff7a3c; }
-  &--9, &--10 { font-size: 84px; color: #ff4f5e; }
+  .es-combo__x {
+    font-size: 0.7em;
+    opacity: 0.85;
+    margin-right: 0.04em;
+  }
+  .es-combo__n {
+    font-size: 1em;
+  }
+
+  font-size: 52px;
+  color: #ffd24a;
+
+  &--3, &--4 { font-size: 64px; color: #ffd24a; }
+  &--5  { font-size: 76px; color: #ffae3e; }
+  &--6  { font-size: 84px; color: #ff7a3c; }
+  &--7, &--8, &--9 { font-size: 96px; color: #ff5a4a; }
+  &--10, &--11, &--12, &--13, &--14, &--15 {
+    font-size: 110px;
+    background: linear-gradient(180deg, #ff4f5e 0%, #ff9a3a 50%, #ffd24a 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    animation: es-combo-pop 180ms cubic-bezier(.34,1.56,.64,1), es-combo-shimmer 800ms linear infinite;
+  }
+}
+
+@keyframes es-combo-shimmer {
+  0%   { filter: drop-shadow(0 4px 18px rgba(255, 79, 94, 0.55)) drop-shadow(0 2px 6px rgba(0,0,0,0.7)); }
+  50%  { filter: drop-shadow(0 4px 28px rgba(255, 210, 74, 0.85)) drop-shadow(0 2px 6px rgba(0,0,0,0.7)); }
+  100% { filter: drop-shadow(0 4px 18px rgba(255, 79, 94, 0.55)) drop-shadow(0 2px 6px rgba(0,0,0,0.7)); }
+}
+
+@keyframes es-combo-pop {
+  0%   { transform: scale(0.5);  opacity: 0; }
+  60%  { transform: scale(1.12); opacity: 1; }
+  100% { transform: scale(1);    opacity: 1; }
+}
+
+// Big mid-screen tier banner (SLICE / MULTI / MASSIVE / GODLIKE)
+.es-tier {
+  position: absolute;
+  top: 36%;
+  left: 0; right: 0;
+  text-align: center;
+  pointer-events: none;
+  z-index: 6;
+  font-weight: 900;
+  font-size: 92px;
+  letter-spacing: -0.02em;
+  text-transform: uppercase;
+  animation: es-tier-banner 850ms cubic-bezier(.34,1.56,.64,1) forwards;
+  filter: drop-shadow(0 6px 24px rgba(0,0,0,0.7));
+
+  &--slice {
+    background: linear-gradient(180deg, #fff 0%, #ffd24a 100%);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+  &--multi {
+    background: linear-gradient(180deg, #ffd24a 0%, #ff7a3c 100%);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+    font-size: 104px;
+  }
+  &--massive {
+    background: linear-gradient(180deg, #ff7a3c 0%, #ff4f5e 100%);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+    font-size: 116px;
+  }
+  &--godlike {
+    background: linear-gradient(180deg, #ff4f9e 0%, #ffd24a 50%, #4af0ff 100%);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+    font-size: 128px;
+  }
+}
+
+@keyframes es-tier-banner {
+  0%   { transform: scale(0.4) rotate(-6deg);  opacity: 0; }
+  18%  { transform: scale(1.18) rotate(2deg);  opacity: 1; }
+  30%  { transform: scale(1.0)  rotate(0deg);  opacity: 1; }
+  78%  { transform: scale(1.0)  rotate(0deg);  opacity: 1; }
+  100% { transform: scale(1.15) rotate(-2deg); opacity: 0; }
 }
 
 @keyframes es-combo-pop {
@@ -124,15 +209,28 @@
 }
 
 .es-title {
-  font-size: 48px;
-  font-weight: 800;
-  letter-spacing: 0.04em;
+  position: relative;
+  font-size: 64px;
+  font-weight: 900;
+  letter-spacing: 0.02em;
   text-transform: uppercase;
-  background: linear-gradient(180deg, #fff 0%, #ffd24a 100%);
+  line-height: 0.9;
+  background: linear-gradient(180deg, #fff 0%, #ff7a3c 55%, #ff4f9e 100%);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
-  text-shadow: 0 3px 12px rgba(0,0,0,0.5);
+  filter:
+    drop-shadow(2px 0 0 rgba(80, 230, 255, 0.65))   // cyan chromatic aberration left
+    drop-shadow(-2px 0 0 rgba(255, 80, 200, 0.65))  // magenta right
+    drop-shadow(0 4px 14px rgba(0,0,0,0.55));
+  animation: es-title-glitch 3.4s steps(1, end) infinite;
+}
+@keyframes es-title-glitch {
+  0%, 88%, 100% { transform: translateX(0); }
+  90%           { transform: translateX(2px); }
+  92%           { transform: translateX(-3px); }
+  94%           { transform: translateX(1px); }
+  96%           { transform: translateX(0); }
 }
 
 .es-tagline {
@@ -203,46 +301,77 @@
 }
 
 // Demo loop: 2.4s
-// 0.0–0.6s   tomato arcs up
-// 0.6–1.0s   trail sweeps across; tomato vanishes; halves appear at moment of cut
-// 1.0–2.0s   halves fly apart and fall
-// 2.0–2.4s   reset
+//   0–35%  tralalero arcs up from bottom-left
+//   35–42% white swipe sweeps across
+//   42–100% halves fly apart, char vanishes; reset
 
-.es-demo__tomato {
-  transform: translate(30px, 160px);
-  animation: es-demo-tomato 2.4s linear infinite;
+.es-demo {
+  height: 180px;
 }
-@keyframes es-demo-tomato {
-  0%   { transform: translate(30px, 200px); opacity: 1; }
-  35%  { transform: translate(180px, 70px); opacity: 1; }
-  41%  { transform: translate(195px, 75px); opacity: 1; }
+.es-demo__svg, .es-demo__trail-svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.es-demo__char {
+  position: absolute;
+  width: 70px;
+  height: 70px;
+  object-fit: contain;
+  animation: es-demo-char 2.4s linear infinite;
+}
+@keyframes es-demo-char {
+  0%   { left: 0;     top: 60%; opacity: 1; transform: rotate(-10deg); }
+  35%  { left: 45%;   top: 18%; opacity: 1; transform: rotate(8deg); }
+  41%  { left: 49%;   top: 22%; opacity: 1; transform: rotate(12deg); }
   42%  { opacity: 0; }
-  100% { opacity: 0; transform: translate(195px, 75px); }
+  100% { opacity: 0; left: 49%; top: 22%; }
 }
 
-.es-demo__half-l, .es-demo__half-r {
+.es-demo__half {
+  position: absolute;
+  width: 70px;
+  height: 70px;
+  object-fit: contain;
   opacity: 0;
-  transform: translate(195px, 75px);
 }
-.es-demo__half-l { animation: es-demo-half-l 2.4s ease-in infinite; }
-.es-demo__half-r { animation: es-demo-half-r 2.4s ease-in infinite; }
+.es-demo__half--l { animation: es-demo-half-l 2.4s ease-in infinite; }
+.es-demo__half--r { animation: es-demo-half-r 2.4s ease-in infinite; }
 @keyframes es-demo-half-l {
-  0%, 41%  { opacity: 0; transform: translate(195px, 75px) rotate(0deg); }
-  42%      { opacity: 1; transform: translate(195px, 75px) rotate(-20deg); }
-  90%      { opacity: 1; transform: translate(130px, 200px) rotate(-220deg); }
-  100%     { opacity: 0; transform: translate(130px, 220px) rotate(-260deg); }
+  0%, 41%  { opacity: 0; left: 49%; top: 22%; transform: rotate(0deg); }
+  42%      { opacity: 1; left: 49%; top: 22%; transform: rotate(-15deg); }
+  90%      { opacity: 1; left: 26%; top: 78%; transform: rotate(-260deg); }
+  100%     { opacity: 0; left: 22%; top: 90%; transform: rotate(-300deg); }
 }
 @keyframes es-demo-half-r {
-  0%, 41%  { opacity: 0; transform: translate(195px, 75px) rotate(0deg); }
-  42%      { opacity: 1; transform: translate(195px, 75px) rotate(20deg); }
-  90%      { opacity: 1; transform: translate(270px, 200px) rotate(220deg); }
-  100%     { opacity: 0; transform: translate(270px, 220px) rotate(260deg); }
+  0%, 41%  { opacity: 0; left: 49%; top: 22%; transform: rotate(0deg); }
+  42%      { opacity: 1; left: 49%; top: 22%; transform: rotate(15deg); }
+  90%      { opacity: 1; left: 70%; top: 78%; transform: rotate(260deg); }
+  100%     { opacity: 0; left: 74%; top: 90%; transform: rotate(300deg); }
+}
+
+.es-demo__bombardiro {
+  position: absolute;
+  right: 4%;
+  bottom: 6%;
+  width: 56px;
+  height: 56px;
+  object-fit: contain;
+  opacity: 0.85;
+  animation: es-demo-bomb-wobble 1.4s ease-in-out infinite;
+}
+@keyframes es-demo-bomb-wobble {
+  0%, 100% { transform: rotate(-6deg) translateY(0); }
+  50%      { transform: rotate(6deg)  translateY(-3px); }
 }
 
 .es-demo__trail {
   stroke-dasharray: 360;
   stroke-dashoffset: 360;
-  filter: drop-shadow(0 0 4px rgba(255,255,255,0.6));
+  filter: drop-shadow(0 0 6px rgba(255, 220, 120, 0.7));
   animation: es-demo-trail 2.4s ease-in-out infinite;
 }
 @keyframes es-demo-trail {
@@ -254,19 +383,6 @@
   100% { stroke-dashoffset: 360; opacity: 0; }
 }
 
-// Bomb decoy just sits at corner — visual reminder there's a bomb to dodge.
-.es-demo__bomb, .es-demo__fuse {
-  opacity: 0.6;
-}
-.es-demo__spark {
-  animation: es-demo-spark 0.6s ease-in-out infinite;
-}
-@keyframes es-demo-spark {
-  0%, 100% { transform: scale(1);   opacity: 1; }
-  50%      { transform: scale(1.6); opacity: 0.5; }
-}
-
-// Finger follows the trail (left → right) during the swipe segment of the loop.
 .es-demo__finger {
   position: absolute;
   top: 30%;

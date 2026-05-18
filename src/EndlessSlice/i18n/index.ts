@@ -2,8 +2,8 @@ type Locale = 'zh' | 'en';
 
 const dict: Record<Locale, Record<string, string>> = {
   zh: {
-    title: '滑切',
-    tagline: '手指划过去，一刀两断。',
+    title: 'BRAIN ROT',
+    tagline: '滑过去，斩断 AI 脑残。',
     tap_to_start: '点击开始',
     score: '得分',
     combo: '×{n}',
@@ -12,14 +12,14 @@ const dict: Record<Locale, Record<string, string>> = {
     home: '返回',
     leaderboard: '排行榜',
     new_best: '新纪录！',
-    sliced: '切片数',
+    sliced: '斩首数',
     final_score: '最终得分',
     max_combo: '最大连击',
-    avoid_bombs: '避开炸弹',
+    avoid_bombs: '避开 Bombardiro',
   },
   en: {
-    title: 'Endless Slice',
-    tagline: 'Swipe to slice. Dodge the bombs.',
+    title: 'BRAIN ROT',
+    tagline: 'Swipe to slash the AI rot.',
     tap_to_start: 'Tap to start',
     score: 'Score',
     combo: '×{n}',
@@ -31,7 +31,7 @@ const dict: Record<Locale, Record<string, string>> = {
     sliced: 'Sliced',
     final_score: 'Final score',
     max_combo: 'Max combo',
-    avoid_bombs: 'Avoid bombs',
+    avoid_bombs: 'Dodge Bombardiro',
   },
 };
 

@@ -1,61 +1,60 @@
 import type { FlyKind, FlyerVisual } from '../types';
 
-// Design-unit values, scaled to device-px at draw time.
+// Sprite URLs resolved by Vite at build time.
+import tralaleroUrl   from '../img/sprites/tralalero.png';
+import tungUrl        from '../img/sprites/tung.png';
+import liriliUrl      from '../img/sprites/lirili.png';
+import patapimUrl     from '../img/sprites/patapim.png';
+import cappuccinoUrl  from '../img/sprites/cappuccino.png';
+import bombardiroUrl  from '../img/sprites/bombardiro.png';
+
 export const VISUALS: Record<FlyKind, FlyerVisual> = {
-  tomato: {
-    body: '#e23b3b', flesh: '#ff9a8a', accent: '#3aa84a',
-    radius: 70, seeds: 6,
-  },
-  banana: {
-    body: '#f5c63a', flesh: '#fff4c6', accent: '#7a5a18',
-    radius: 75, seeds: 0,
-  },
-  cucumber: {
-    body: '#3f8a4a', flesh: '#dff5cf', accent: '#1f5b2a',
-    radius: 72, seeds: 4,
-  },
-  watermelon: {
-    body: '#2a8a36', flesh: '#ff5466', accent: '#0e1408',
-    radius: 92, seeds: 7,
-  },
-  orange: {
-    body: '#ff8a2c', flesh: '#ffd49a', accent: '#a04a10',
-    radius: 70, seeds: 0,
-  },
-  sushi: {
-    body: '#1a1a1a', flesh: '#f6f0d8', accent: '#e23b3b',
-    radius: 66, seeds: 0,
-  },
-  golden: {
-    body: '#ffd24a', flesh: '#fff4c6', accent: '#a86a10',
-    radius: 64, seeds: 5,
-  },
-  bomb: {
-    body: '#222226', flesh: '#3a3a3e', accent: '#ff5a2c',
-    radius: 64, seeds: 0,
-  },
+  tralalero:  { radius: 96,  sprite: tralaleroUrl,  flesh: '#5ab1d0', flash: '#5ab1d0' },
+  tung:       { radius: 82,  sprite: tungUrl,       flesh: '#caa874', flash: '#e3c87d' },
+  lirili:     { radius: 102, sprite: liriliUrl,     flesh: '#8fc66a', flash: '#a8e07c' },
+  patapim:    { radius: 92,  sprite: patapimUrl,    flesh: '#a06b2a', flash: '#c08a48' },
+  cappuccino: { radius: 88,  sprite: cappuccinoUrl, flesh: '#f0e0c0', flash: '#ffd24a' },
+  bombardiro: { radius: 88,  sprite: bombardiroUrl, flesh: '#3a3a30', flash: '#ff5a2c' },
 };
 
-export const ALL_FOODS: FlyKind[] = ['tomato', 'banana', 'cucumber', 'watermelon', 'orange', 'sushi'];
+export const REGULAR_KINDS: FlyKind[] = ['tralalero', 'tung', 'lirili', 'patapim'];
 
-export function isBomb(kind: FlyKind): boolean { return kind === 'bomb'; }
-export function isGolden(kind: FlyKind): boolean { return kind === 'golden'; }
+export function isBomb(kind: FlyKind): boolean { return kind === 'bombardiro'; }
+export function isGolden(kind: FlyKind): boolean { return kind === 'cappuccino'; }
 
-/** Spawn budget over time: returns the spawn interval (s) and bomb-rate (0..1) at time t (s). */
+export function baseScoreFor(kind: FlyKind): number {
+  const r = VISUALS[kind].radius;
+  if (r >= 100) return 15;
+  if (r <= 70)  return 15;
+  return 10;
+}
+
+export function pickRegular(rng: () => number): FlyKind {
+  return REGULAR_KINDS[Math.floor(rng() * REGULAR_KINDS.length)];
+}
+
 export function difficulty(t: number) {
-  // Spawn interval shrinks from 1.05s → 0.45s over ~75s
-  const spawnInterval = Math.max(0.45, 1.05 - t * 0.008);
-  // Bomb rate grows from 0% → 18% over ~90s
-  const bombRate = Math.min(0.18, t * 0.002);
-  // Golden bonus appears occasionally
-  const goldenRate = Math.min(0.08, 0.02 + t * 0.0008);
-  // Wave size: 1..3 flyers per spawn
+  const spawnInterval = Math.max(0.42, 1.05 - t * 0.008);
+  const bombRate = Math.min(0.20, t * 0.0025);
+  const goldenRate = Math.min(0.07, 0.018 + t * 0.0006);
   const waveMin = 1;
-  const waveMax = Math.min(3, 1 + Math.floor(t / 18));
+  const waveMax = Math.min(4, 1 + Math.floor(t / 16));
   return { spawnInterval, bombRate, goldenRate, waveMin, waveMax };
 }
 
-/** Pick a random foody kind (no bomb, no golden). */
-export function pickFood(rng: () => number): FlyKind {
-  return ALL_FOODS[Math.floor(rng() * ALL_FOODS.length)];
+/** Preload all sprites; resolves when every image is loaded (or errors). */
+export function preloadSprites(): Promise<Record<FlyKind, HTMLImageElement>> {
+  const entries = Object.entries(VISUALS) as Array<[FlyKind, FlyerVisual]>;
+  return Promise.all(entries.map(([kind, v]) => {
+    return new Promise<[FlyKind, HTMLImageElement]>((resolve) => {
+      const img = new Image();
+      img.onload = () => resolve([kind, img]);
+      img.onerror = () => resolve([kind, img]); // resolve anyway; draw will fallback to a placeholder
+      img.src = v.sprite;
+    });
+  })).then(pairs => {
+    const out = {} as Record<FlyKind, HTMLImageElement>;
+    for (const [k, img] of pairs) out[k] = img;
+    return out;
+  });
 }

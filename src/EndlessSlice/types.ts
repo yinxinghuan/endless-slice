@@ -1,70 +1,55 @@
 export type Screen = 'start' | 'playing' | 'end';
 
 export type FlyKind =
-  | 'tomato'
-  | 'banana'
-  | 'cucumber'
-  | 'watermelon'
-  | 'orange'
-  | 'sushi'
-  | 'bomb'
-  | 'golden';
+  | 'tralalero'
+  | 'tung'
+  | 'lirili'
+  | 'patapim'
+  | 'cappuccino'   // golden
+  | 'bombardiro';  // bomb
 
 export interface FlyerVisual {
-  /** Outer body color (skin) */
-  body: string;
-  /** Cut-face color (flesh) */
-  flesh: string;
-  /** Accent color (seeds, leaf, etc) */
-  accent: string;
-  /** Radius in design units */
+  /** Display radius in design-units (1080-wide reference canvas) */
   radius: number;
-  /** Number of decorative dots (seeds) on the flesh face */
-  seeds: number;
+  /** Sprite path (relative to module). Loaded as Image at game start. */
+  sprite: string;
+  /** Color used for the cut-face strip + juice particles */
+  flesh: string;
+  /** Color used for impact flash */
+  flash: string;
 }
 
 export interface Flyer {
   uid: number;
   kind: FlyKind;
   visual: FlyerVisual;
-  /** Position in device-px */
-  x: number;
-  y: number;
-  /** Velocity in device-px / second */
-  vx: number;
-  vy: number;
-  /** Rotation in radians */
+  x: number; y: number;
+  vx: number; vy: number;
   rot: number;
   vrot: number;
-  /** Has this flyer been sliced? Sliced flyers despawn after split */
   sliced: boolean;
-  /** Has the player been credited for missing this (fell off bottom)? */
   missed: boolean;
 }
 
 export interface Half {
   uid: number;
   visual: FlyerVisual;
-  x: number;
-  y: number;
-  vx: number;
-  vy: number;
+  kind: FlyKind;
+  x: number; y: number;
+  vx: number; vy: number;
   rot: number;
   vrot: number;
-  /** Rotation of the cut line at the moment of slicing (radians, world-space) */
-  cutAngle: number;
-  /** Which side of the cut this half is on (+1 right, -1 left in cut-local frame) */
+  /** Cut angle in the flyer's LOCAL frame at slice moment (rad).
+   *  Stays constant; the cut visual rotates with the half via h.rot. */
+  relCutAngle: number;
   side: 1 | -1;
-  /** ms remaining before fadeout */
   life: number;
 }
 
 export interface Particle {
   uid: number;
-  x: number;
-  y: number;
-  vx: number;
-  vy: number;
+  x: number; y: number;
+  vx: number; vy: number;
   color: string;
   size: number;
   life: number;
@@ -72,15 +57,12 @@ export interface Particle {
 }
 
 export interface TrailPoint {
-  x: number;
-  y: number;
-  t: number; // performance.now()
+  x: number; y: number; t: number;
 }
 
 export interface Impact {
   uid: number;
-  x: number;
-  y: number;
+  x: number; y: number;
   text: string;
   color: string;
   born: number;

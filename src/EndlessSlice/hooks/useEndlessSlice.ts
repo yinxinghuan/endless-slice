@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Flyer, FlyKind, Half, Impact, Particle, Screen, Stats, TrailPoint } from '../types';
-import { VISUALS, difficulty, pickFood } from '../utils/food';
+import { VISUALS, baseScoreFor, difficulty, isBomb, isGolden, pickRegular, preloadSprites } from '../utils/food';
 import {
-  drawBackground, drawFlyer, drawHalf, drawParticle, drawTrail, makeDrawCtx,
+  drawBackground, drawFlyer, drawHalf, drawParticle, drawTrail, makeDrawCtx, setSprites,
 } from '../utils/draw';
 import {
   sfxBomb, sfxMiss, sfxRunEnd, sfxSlice, sfxSwipeStart,
@@ -11,11 +11,19 @@ import {
 
 const BEST_KEY = 'endless-slice:best';
 const LIVES = 3;
-const POINTS_PER_SLICE = 10;
 const COMBO_BONUS_PER_EXTRA = 10; // each extra slice in same swipe adds +10 × extra
 const GOLDEN_POINTS = 100;
-const TRAIL_LIFE_MS = 180;
+const TRAIL_LIFE_MS = 200;
 const FLASH_LIFE_MS = 260;
+const TIER_CALLOUT_LIFE_MS = 850;
+
+function tierFor(combo: number): string {
+  if (combo >= 15) return 'GODLIKE';
+  if (combo >= 10) return 'MASSIVE';
+  if (combo >= 6)  return 'MULTI';
+  if (combo >= 3)  return 'SLICE';
+  return '';
+}
 
 export function useEndlessSlice() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -37,6 +45,7 @@ export function useEndlessSlice() {
   const slicedRef = useRef<number>(0);
   const maxComboRef = useRef<number>(0);
   const flashRef = useRef<{ at: number; color: string }>({ at: 0, color: '' });
+  const tierCalloutRef = useRef<{ label: string; born: number }>({ label: '', born: 0 });
   const sizeRef = useRef<{ W: number; H: number; dpr: number; cssW: number; cssH: number }>({
     W: 0, H: 0, dpr: 1, cssW: 0, cssH: 0,
   });
@@ -46,6 +55,7 @@ export function useEndlessSlice() {
   const [score, setScore] = useState(0);
   const [lives, setLives] = useState(LIVES);
   const [comboInSwipe, setComboInSwipe] = useState(0);
+  const [tierLabel, setTierLabel] = useState<string>('');
   const [best, setBest] = useState<number>(() => {
     const v = typeof localStorage !== 'undefined' ? localStorage.getItem(BEST_KEY) : null;
     return v ? Number(v) || 0 : 0;
@@ -71,6 +81,15 @@ export function useEndlessSlice() {
     window.addEventListener('resize', onResize);
     return () => window.removeEventListener('resize', onResize);
   }, [resize]);
+
+  // Preload sprites once
+  useEffect(() => {
+    let alive = true;
+    preloadSprites().then(s => {
+      if (alive) setSprites(s);
+    });
+    return () => { alive = false; };
+  }, []);
 
   const start = useCallback(() => {
     flyersRef.current = [];
@@ -153,14 +172,15 @@ export function useEndlessSlice() {
     const trail = trailRef.current;
     const prev = trail[trail.length - 1];
     if (!prev) return;
-    // Skip degenerate (no movement)
     const dx = p.x - prev.x;
     const dy = p.y - prev.y;
     if (dx === 0 && dy === 0) return;
-    // Hit-test segment (prev → p) against living flyers
-    checkSegmentSlice(prev.x, prev.y, p.x, p.y);
+    // Velocity in px/sec, smoothed against last segment dt
+    const dtMs = Math.max(1, now - prev.t);
+    const vx = (dx / dtMs) * 1000;
+    const vy = (dy / dtMs) * 1000;
+    checkSegmentSlice(prev.x, prev.y, p.x, p.y, vx, vy);
     trail.push({ x: p.x, y: p.y, t: now });
-    // Drop ancient points
     while (trail.length > 0 && now - trail[0].t > TRAIL_LIFE_MS + 100) trail.shift();
   }, [mapPointer]);
 
@@ -172,69 +192,100 @@ export function useEndlessSlice() {
 
   // ─── Slicing ────────────────────────────────────────────────────────
 
-  const checkSegmentSlice = (ax: number, ay: number, bx: number, by: number) => {
+  const checkSegmentSlice = (
+    ax: number, ay: number, bx: number, by: number,
+    swipeVx: number, swipeVy: number,
+  ) => {
     const flyers = flyersRef.current;
     for (let i = 0; i < flyers.length; i++) {
       const f = flyers[i];
       if (f.sliced) continue;
       const r = f.visual.radius * (sizeRef.current.W / 1080);
       if (segmentCircle(ax, ay, bx, by, f.x, f.y, r)) {
-        sliceFlyer(f, bx - ax, by - ay);
+        sliceFlyer(f, bx - ax, by - ay, swipeVx, swipeVy);
       }
     }
   };
 
-  const sliceFlyer = (f: Flyer, dirX: number, dirY: number) => {
+  const sliceFlyer = (
+    f: Flyer, dirX: number, dirY: number,
+    swipeVx: number, swipeVy: number,
+  ) => {
     f.sliced = true;
     const scale = sizeRef.current.W / 1080;
     const r = f.visual.radius * scale;
-    // Cut angle = direction of swipe
-    const cutAngle = Math.atan2(dirY, dirX);
-    // Perpendicular split velocity (each half pushed opposite ways)
+
+    // Cut angle = direction of swipe (with small jitter for visual variety)
+    const cutAngle = Math.atan2(dirY, dirX) + (Math.random() - 0.5) * 0.12;
     const perpX = Math.cos(cutAngle + Math.PI / 2);
     const perpY = Math.sin(cutAngle + Math.PI / 2);
-    const splitSpeed = 240 * scale;
+    const tanX = Math.cos(cutAngle);
+    const tanY = Math.sin(cutAngle);
+
+    // Swipe speed in px/sec. Clamp to reasonable range so a single ultra-fast
+    // pointermove doesn't launch halves into orbit.
+    const swipeSpeed = Math.min(2400, Math.hypot(swipeVx, swipeVy));
+
+    // Split velocity scales with swipe speed.
+    // - Base perpendicular kick (240..520 px/s @ 1080-scale)
+    // - Tangential boost = fraction of swipe velocity (halves drift along the slash)
+    const splitPerp = (220 + swipeSpeed * 0.18) * scale;
+    const tanBoost = swipeSpeed * 0.22 * scale;
+
+    // Big fruits resist the kick (mass proxy)
+    const massFactor = 1 - Math.min(0.45, (f.visual.radius - 60) * 0.005);
+    const finalPerp = splitPerp * massFactor;
+    const finalTan = tanBoost * massFactor;
+
+    // Spin scales with swipe speed
+    const spinKick = 5 + swipeSpeed * 0.004;
+
+    // Cut angle in the flyer's local frame at slice moment.
+    const relCutAngle = cutAngle - f.rot;
     const halfA: Half = {
       uid: uidRef.current++,
       visual: f.visual,
+      kind: f.kind,
       x: f.x, y: f.y,
-      vx: f.vx + perpX * splitSpeed,
-      vy: f.vy + perpY * splitSpeed,
+      vx: f.vx + perpX * finalPerp + tanX * finalTan,
+      vy: f.vy + perpY * finalPerp + tanY * finalTan,
       rot: f.rot,
-      vrot: f.vrot + 4,
-      cutAngle,
+      vrot: f.vrot + spinKick,
+      relCutAngle,
       side: 1,
-      life: 1400,
+      life: 1600,
     };
     const halfB: Half = {
       ...halfA,
       uid: uidRef.current++,
-      vx: f.vx - perpX * splitSpeed,
-      vy: f.vy - perpY * splitSpeed,
-      vrot: f.vrot - 4,
+      vx: f.vx - perpX * finalPerp + tanX * finalTan,
+      vy: f.vy - perpY * finalPerp + tanY * finalTan,
+      vrot: f.vrot - spinKick,
       side: -1,
     };
     halvesRef.current.push(halfA, halfB);
 
-    // Juice particles
+    // Juice particles — count + speed scale with size and swipe speed
     const now = performance.now();
-    const particleCount = f.kind === 'watermelon' ? 14 : 10;
+    const sizeBoost = Math.max(1, r / (80 * scale));
+    const speedBoost = 1 + swipeSpeed * 0.0005;
+    const particleCount = Math.round(10 * sizeBoost * speedBoost);
     for (let i = 0; i < particleCount; i++) {
       const a = Math.random() * Math.PI * 2;
-      const sp = 200 * scale * (0.5 + Math.random() * 0.8);
+      const sp = (160 + swipeSpeed * 0.18) * scale * (0.4 + Math.random() * 0.9);
       particlesRef.current.push({
         uid: uidRef.current++,
         x: f.x, y: f.y,
-        vx: Math.cos(a) * sp,
-        vy: Math.sin(a) * sp - 60 * scale,
+        vx: Math.cos(a) * sp + tanX * tanBoost * 0.3,
+        vy: Math.sin(a) * sp - 80 * scale + tanY * tanBoost * 0.3,
         color: f.visual.flesh,
-        size: (4 + Math.random() * 4) * scale,
-        life: 600 + Math.random() * 300,
+        size: (3 + Math.random() * 5) * scale * sizeBoost * 0.8,
+        life: 600 + Math.random() * 400,
         born: now,
       });
     }
 
-    if (f.kind === 'bomb') {
+    if (isBomb(f.kind)) {
       onBombHit(f);
       return;
     }
@@ -244,23 +295,35 @@ export function useEndlessSlice() {
     const c = sliceCountInSwipeRef.current;
     if (c > maxComboRef.current) maxComboRef.current = c;
     setComboInSwipe(c);
-    const isGolden = f.kind === 'golden';
-    const gained = isGolden
+
+    const golden = isGolden(f.kind);
+    const baseKind = baseScoreFor(f.kind);
+    const gained = golden
       ? GOLDEN_POINTS
-      : POINTS_PER_SLICE + COMBO_BONUS_PER_EXTRA * Math.max(0, c - 1);
+      : baseKind + COMBO_BONUS_PER_EXTRA * Math.max(0, c - 1);
     scoreRef.current += gained;
     setScore(scoreRef.current);
 
     impactsRef.current.push({
       uid: uidRef.current++,
       x: f.x, y: f.y - r * 1.2,
-      text: isGolden ? `+${gained}` : (c >= 2 ? `×${c} +${gained}` : `+${gained}`),
-      color: isGolden ? '#ffd24a' : comboColor(c),
+      text: golden ? `+${gained}` : `+${gained}`,
+      color: golden ? '#ffd24a' : comboColor(c),
       born: now,
-      scale: 1 + Math.min(0.6, c * 0.1),
+      scale: golden ? 1.6 : (1 + Math.min(0.5, c * 0.08)),
     });
 
-    flashRef.current = { at: now, color: isGolden ? '#ffd24a' : f.visual.flesh };
+    // Tier callout when combo crosses thresholds (only on the slice that crosses)
+    const prevTier = Math.max(0, c - 1);
+    const newTier = c;
+    const tierLabel = tierFor(newTier);
+    const wasTier = tierFor(prevTier);
+    if (tierLabel && tierLabel !== wasTier) {
+      tierCalloutRef.current = { label: tierLabel, born: now };
+      setTierLabel(tierLabel);
+    }
+
+    flashRef.current = { at: now, color: golden ? '#ffd24a' : f.visual.flash };
     sfxSlice(c);
   };
 
@@ -303,9 +366,9 @@ export function useEndlessSlice() {
     for (let i = 0; i < count; i++) {
       let kind: FlyKind;
       const roll = Math.random();
-      if (roll < bombRate) kind = 'bomb';
-      else if (roll < bombRate + goldenRate) kind = 'golden';
-      else kind = pickFood(Math.random);
+      if (roll < bombRate) kind = 'bombardiro';
+      else if (roll < bombRate + goldenRate) kind = 'cappuccino';
+      else kind = pickRegular(Math.random);
       const visual = VISUALS[kind];
       const x = (0.15 + Math.random() * 0.7) * W;
       const y = H + visual.radius * scale + 20;
@@ -373,7 +436,7 @@ export function useEndlessSlice() {
             if (f.y - f.visual.radius * scale > H + 40 * scale) {
               if (!f.missed) {
                 f.missed = true;
-                if (f.kind !== 'bomb' && f.kind !== 'golden') {
+                if (!isBomb(f.kind) && !isGolden(f.kind)) {
                   livesRef.current -= 1;
                   setLives(livesRef.current);
                   sfxMiss();
@@ -483,9 +546,16 @@ export function useEndlessSlice() {
 
   useEffect(() => () => { stopAmbient(); }, []);
 
+  // Clear tier label after callout life
+  useEffect(() => {
+    if (!tierLabel) return;
+    const id = setTimeout(() => setTierLabel(''), TIER_CALLOUT_LIFE_MS);
+    return () => clearTimeout(id);
+  }, [tierLabel]);
+
   return {
     canvasRef,
-    screen, score, lives, comboInSwipe, best, stats,
+    screen, score, lives, comboInSwipe, tierLabel, best, stats,
     start, home,
     onPointerDown, onPointerMove, onPointerUp,
   };

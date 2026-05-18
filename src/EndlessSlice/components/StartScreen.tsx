@@ -1,5 +1,7 @@
 import { TouchAppIcon } from './TouchAppIcon';
 import { t } from '../i18n';
+import tralaleroUrl from '../img/sprites/tralalero.png';
+import bombardiroUrl from '../img/sprites/bombardiro.png';
 
 interface Props {
   best: number;
@@ -7,40 +9,19 @@ interface Props {
   onOpenLeaderboard: () => void;
 }
 
-// Mini demo: a tomato arcs up while a sweeping swipe-trail crosses it,
-// splitting it into two halves. Loops.
+// Mini demo: a tralalero arcs up while a swipe sweeps; halves fling apart.
 function MiniDemo() {
   return (
     <div className="es-demo" aria-hidden>
-      <svg className="es-demo__svg" viewBox="0 0 360 200" preserveAspectRatio="xMidYMid meet">
-        <defs>
-          <radialGradient id="es-demo-tomato" cx="0.4" cy="0.4">
-            <stop offset="0%" stopColor="#ff7670"/>
-            <stop offset="100%" stopColor="#e23b3b"/>
-          </radialGradient>
-        </defs>
-        {/* Bomb decoy (won't be sliced in demo) */}
-        <circle className="es-demo__bomb" cx="280" cy="160" r="18" fill="#2a2a2e"/>
-        <line className="es-demo__fuse" x1="288" y1="146" x2="295" y2="132" stroke="#8a6b3a" strokeWidth="2.5" strokeLinecap="round"/>
-        <circle className="es-demo__spark" cx="297" cy="130" r="3" fill="#ffd24a"/>
-
-        {/* Tomato arcing up */}
-        <g className="es-demo__tomato">
-          <circle r="22" fill="url(#es-demo-tomato)"/>
-          <ellipse cx="0" cy="-22" rx="8" ry="4" fill="#3aa84a"/>
-        </g>
-
-        {/* Half pieces flying away */}
-        <g className="es-demo__half-l">
-          <path d="M -22 0 A 22 22 0 0 1 22 0 Z" fill="#e23b3b"/>
-          <ellipse cx="0" cy="0" rx="20" ry="6" fill="#ff9a8a"/>
-        </g>
-        <g className="es-demo__half-r">
-          <path d="M -22 0 A 22 22 0 0 1 22 0 Z" fill="#e23b3b"/>
-          <ellipse cx="0" cy="0" rx="20" ry="6" fill="#ff9a8a"/>
-        </g>
-
-        {/* Swipe trail */}
+      {/* Bombardiro corner decoy */}
+      <img className="es-demo__bombardiro" src={bombardiroUrl} alt="" />
+      {/* Whole tralalero arcs up, then vanishes at the swipe moment */}
+      <img className="es-demo__char" src={tralaleroUrl} alt="" />
+      {/* Two halves that pop in at the swipe moment and fly apart (visual fake — same sprite, offset) */}
+      <img className="es-demo__half es-demo__half--l" src={tralaleroUrl} alt="" />
+      <img className="es-demo__half es-demo__half--r" src={tralaleroUrl} alt="" />
+      {/* Swipe trail */}
+      <svg className="es-demo__trail-svg" viewBox="0 0 360 200" preserveAspectRatio="xMidYMid meet">
         <path className="es-demo__trail" d="M 30 60 Q 180 140 320 80" fill="none" stroke="#fff" strokeWidth="4" strokeLinecap="round"/>
       </svg>
       <div className="es-demo__finger">
