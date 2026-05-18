@@ -3,4 +3,3 @@ dist
 .DS_Store
 *.log
 .vite
-src/EndlessSlice/img/sprites/*_raw.png

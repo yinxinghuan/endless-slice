@@ -2,8 +2,8 @@ type Locale = 'zh' | 'en';
 
 const dict: Record<Locale, Record<string, string>> = {
   zh: {
-    title: 'BRAIN ROT',
-    tagline: '滑过去，斩断 AI 脑残。',
+    title: 'FARM TO TABLE',
+    tagline: '一刀下去，从农场直送餐桌。',
     tap_to_start: '点击开始',
     score: '得分',
     combo: '×{n}',
@@ -12,14 +12,13 @@ const dict: Record<Locale, Record<string, string>> = {
     home: '返回',
     leaderboard: '排行榜',
     new_best: '新纪录！',
-    sliced: '斩首数',
+    sliced: '切块数',
     final_score: '最终得分',
     max_combo: '最大连击',
-    avoid_bombs: '避开 Bombardiro',
   },
   en: {
-    title: 'BRAIN ROT',
-    tagline: 'Swipe to slash the AI rot.',
+    title: 'FARM TO TABLE',
+    tagline: 'One swipe, straight to the plate.',
     tap_to_start: 'Tap to start',
     score: 'Score',
     combo: '×{n}',
@@ -31,7 +30,6 @@ const dict: Record<Locale, Record<string, string>> = {
     sliced: 'Sliced',
     final_score: 'Final score',
     max_combo: 'Max combo',
-    avoid_bombs: 'Dodge Bombardiro',
   },
 };
 

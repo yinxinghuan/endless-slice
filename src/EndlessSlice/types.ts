@@ -1,21 +1,30 @@
 export type Screen = 'start' | 'playing' | 'end';
 
 export type FlyKind =
-  | 'tralalero'
-  | 'tung'
-  | 'lirili'
-  | 'patapim'
-  | 'cappuccino'   // golden
-  | 'bombardiro';  // bomb
+  | 'pig'
+  | 'cow'
+  | 'chicken'
+  | 'sheep'
+  | 'duck'
+  | 'wagyu'        // golden bonus
+  | 'no_butcher';  // bomb (PETA-style warning sign)
 
 export interface FlyerVisual {
   /** Display radius in design-units (1080-wide reference canvas) */
   radius: number;
-  /** Sprite path (relative to module). Loaded as Image at game start. */
-  sprite: string;
-  /** Color used for the cut-face strip + juice particles */
+  /** Skin / primary body color */
+  body: string;
+  /** Secondary accent (spots, comb, ears, beak…) */
+  accent: string;
+  /** Dark shade for outlines / shadow / feature */
+  dark: string;
+  /** Meat cross-section base color */
   flesh: string;
-  /** Color used for impact flash */
+  /** Marbling / fat color (lighter) */
+  fat: string;
+  /** Bone (small white ellipse in center) */
+  bone: string;
+  /** Impact flash + juice particle color */
   flash: string;
 }
 
@@ -33,13 +42,13 @@ export interface Flyer {
 
 export interface Half {
   uid: number;
-  visual: FlyerVisual;
   kind: FlyKind;
+  visual: FlyerVisual;
   x: number; y: number;
   vx: number; vy: number;
   rot: number;
   vrot: number;
-  /** Cut angle in the flyer's LOCAL frame at slice moment (rad).
+  /** Cut angle in the flyer's local frame at slice moment (rad).
    *  Stays constant; the cut visual rotates with the half via h.rot. */
   relCutAngle: number;
   side: 1 | -1;

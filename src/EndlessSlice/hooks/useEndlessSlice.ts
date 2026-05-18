@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Flyer, FlyKind, Half, Impact, Particle, Screen, Stats, TrailPoint } from '../types';
-import { VISUALS, baseScoreFor, difficulty, isBomb, isGolden, pickRegular, preloadSprites } from '../utils/food';
+import { VISUALS, baseScoreFor, difficulty, isBomb, isGolden, pickRegular } from '../utils/food';
 import {
-  drawBackground, drawFlyer, drawHalf, drawParticle, drawTrail, makeDrawCtx, setSprites,
+  drawBackground, drawFlyer, drawHalf, drawParticle, drawTrail, makeDrawCtx,
 } from '../utils/draw';
 import {
   sfxBomb, sfxMiss, sfxRunEnd, sfxSlice, sfxSwipeStart,
@@ -82,14 +82,6 @@ export function useEndlessSlice() {
     return () => window.removeEventListener('resize', onResize);
   }, [resize]);
 
-  // Preload sprites once
-  useEffect(() => {
-    let alive = true;
-    preloadSprites().then(s => {
-      if (alive) setSprites(s);
-    });
-    return () => { alive = false; };
-  }, []);
 
   const start = useCallback(() => {
     flyersRef.current = [];
@@ -366,8 +358,8 @@ export function useEndlessSlice() {
     for (let i = 0; i < count; i++) {
       let kind: FlyKind;
       const roll = Math.random();
-      if (roll < bombRate) kind = 'bombardiro';
-      else if (roll < bombRate + goldenRate) kind = 'cappuccino';
+      if (roll < bombRate) kind = 'no_butcher';
+      else if (roll < bombRate + goldenRate) kind = 'wagyu';
       else kind = pickRegular(Math.random);
       const visual = VISUALS[kind];
       const x = (0.15 + Math.random() * 0.7) * W;

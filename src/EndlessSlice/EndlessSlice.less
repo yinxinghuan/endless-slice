@@ -210,27 +210,18 @@
 
 .es-title {
   position: relative;
-  font-size: 64px;
+  font-size: 52px;
   font-weight: 900;
   letter-spacing: 0.02em;
   text-transform: uppercase;
-  line-height: 0.9;
-  background: linear-gradient(180deg, #fff 0%, #ff7a3c 55%, #ff4f9e 100%);
+  line-height: 0.95;
+  background: linear-gradient(180deg, #ffe2a0 0%, #ff8a3a 50%, #b81818 100%);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
   filter:
-    drop-shadow(2px 0 0 rgba(80, 230, 255, 0.65))   // cyan chromatic aberration left
-    drop-shadow(-2px 0 0 rgba(255, 80, 200, 0.65))  // magenta right
-    drop-shadow(0 4px 14px rgba(0,0,0,0.55));
-  animation: es-title-glitch 3.4s steps(1, end) infinite;
-}
-@keyframes es-title-glitch {
-  0%, 88%, 100% { transform: translateX(0); }
-  90%           { transform: translateX(2px); }
-  92%           { transform: translateX(-3px); }
-  94%           { transform: translateX(1px); }
-  96%           { transform: translateX(0); }
+    drop-shadow(0 3px 0 rgba(80, 18, 8, 0.85))
+    drop-shadow(0 6px 14px rgba(0, 0, 0, 0.55));
 }
 
 .es-tagline {
@@ -300,72 +291,58 @@
   height: auto;
 }
 
-// Demo loop: 2.4s
-//   0–35%  tralalero arcs up from bottom-left
-//   35–42% white swipe sweeps across
-//   42–100% halves fly apart, char vanishes; reset
+// Demo loop: 2.4s — pig head arcs up, swipe slashes, halves fall.
 
 .es-demo {
   height: 180px;
 }
-.es-demo__svg, .es-demo__trail-svg {
-  position: absolute;
-  inset: 0;
+.es-demo__svg {
+  display: block;
   width: 100%;
   height: 100%;
-  pointer-events: none;
 }
 
 .es-demo__char {
-  position: absolute;
-  width: 70px;
-  height: 70px;
-  object-fit: contain;
+  transform-box: fill-box;
+  transform-origin: center;
   animation: es-demo-char 2.4s linear infinite;
 }
 @keyframes es-demo-char {
-  0%   { left: 0;     top: 60%; opacity: 1; transform: rotate(-10deg); }
-  35%  { left: 45%;   top: 18%; opacity: 1; transform: rotate(8deg); }
-  41%  { left: 49%;   top: 22%; opacity: 1; transform: rotate(12deg); }
+  0%   { transform: translate(30px, 160px) rotate(-12deg); opacity: 1; }
+  35%  { transform: translate(180px, 70px) rotate(8deg);   opacity: 1; }
+  41%  { transform: translate(195px, 78px) rotate(12deg);  opacity: 1; }
   42%  { opacity: 0; }
-  100% { opacity: 0; left: 49%; top: 22%; }
+  100% { transform: translate(195px, 78px) rotate(12deg);  opacity: 0; }
 }
 
 .es-demo__half {
-  position: absolute;
-  width: 70px;
-  height: 70px;
-  object-fit: contain;
+  transform-box: fill-box;
+  transform-origin: center;
   opacity: 0;
 }
 .es-demo__half--l { animation: es-demo-half-l 2.4s ease-in infinite; }
 .es-demo__half--r { animation: es-demo-half-r 2.4s ease-in infinite; }
 @keyframes es-demo-half-l {
-  0%, 41%  { opacity: 0; left: 49%; top: 22%; transform: rotate(0deg); }
-  42%      { opacity: 1; left: 49%; top: 22%; transform: rotate(-15deg); }
-  90%      { opacity: 1; left: 26%; top: 78%; transform: rotate(-260deg); }
-  100%     { opacity: 0; left: 22%; top: 90%; transform: rotate(-300deg); }
+  0%, 41%  { opacity: 0; transform: translate(195px, 78px) rotate(0deg); }
+  42%      { opacity: 1; transform: translate(195px, 78px) rotate(-15deg); }
+  90%      { opacity: 1; transform: translate(110px, 175px) rotate(-260deg); }
+  100%     { opacity: 0; transform: translate(95px, 195px)  rotate(-300deg); }
 }
 @keyframes es-demo-half-r {
-  0%, 41%  { opacity: 0; left: 49%; top: 22%; transform: rotate(0deg); }
-  42%      { opacity: 1; left: 49%; top: 22%; transform: rotate(15deg); }
-  90%      { opacity: 1; left: 70%; top: 78%; transform: rotate(260deg); }
-  100%     { opacity: 0; left: 74%; top: 90%; transform: rotate(300deg); }
+  0%, 41%  { opacity: 0; transform: translate(195px, 78px) rotate(0deg); }
+  42%      { opacity: 1; transform: translate(195px, 78px) rotate(15deg); }
+  90%      { opacity: 1; transform: translate(290px, 175px) rotate(260deg); }
+  100%     { opacity: 0; transform: translate(305px, 195px) rotate(300deg); }
 }
 
-.es-demo__bombardiro {
-  position: absolute;
-  right: 4%;
-  bottom: 6%;
-  width: 56px;
-  height: 56px;
-  object-fit: contain;
-  opacity: 0.85;
-  animation: es-demo-bomb-wobble 1.4s ease-in-out infinite;
+.es-demo__bomb-sign {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: es-demo-bomb-wobble 1.6s ease-in-out infinite;
 }
 @keyframes es-demo-bomb-wobble {
-  0%, 100% { transform: rotate(-6deg) translateY(0); }
-  50%      { transform: rotate(6deg)  translateY(-3px); }
+  0%, 100% { transform: translate(295px, 165px) rotate(-6deg); }
+  50%      { transform: translate(295px, 162px) rotate(6deg); }
 }
 
 .es-demo__trail {

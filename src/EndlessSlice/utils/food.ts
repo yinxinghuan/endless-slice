@@ -1,31 +1,87 @@
 import type { FlyKind, FlyerVisual } from '../types';
 
-// Sprite URLs resolved by Vite at build time.
-import tralaleroUrl   from '../img/sprites/tralalero.png';
-import tungUrl        from '../img/sprites/tung.png';
-import liriliUrl      from '../img/sprites/lirili.png';
-import patapimUrl     from '../img/sprites/patapim.png';
-import cappuccinoUrl  from '../img/sprites/cappuccino.png';
-import bombardiroUrl  from '../img/sprites/bombardiro.png';
-
 export const VISUALS: Record<FlyKind, FlyerVisual> = {
-  tralalero:  { radius: 96,  sprite: tralaleroUrl,  flesh: '#5ab1d0', flash: '#5ab1d0' },
-  tung:       { radius: 82,  sprite: tungUrl,       flesh: '#caa874', flash: '#e3c87d' },
-  lirili:     { radius: 102, sprite: liriliUrl,     flesh: '#8fc66a', flash: '#a8e07c' },
-  patapim:    { radius: 92,  sprite: patapimUrl,    flesh: '#a06b2a', flash: '#c08a48' },
-  cappuccino: { radius: 88,  sprite: cappuccinoUrl, flesh: '#f0e0c0', flash: '#ffd24a' },
-  bombardiro: { radius: 88,  sprite: bombardiroUrl, flesh: '#3a3a30', flash: '#ff5a2c' },
+  pig: {
+    radius: 92,
+    body:   '#ffc7c7',
+    accent: '#ff9aa6',
+    dark:   '#a06070',
+    flesh:  '#e8506a',
+    fat:    '#ffd8e0',
+    bone:   '#fffaf2',
+    flash:  '#ff7090',
+  },
+  cow: {
+    radius: 100,
+    body:   '#fafafa',
+    accent: '#1d1d1f',
+    dark:   '#a07a4a',   // horns
+    flesh:  '#a02238',
+    fat:    '#ffe5d6',
+    bone:   '#fffaf2',
+    flash:  '#ff6a6a',
+  },
+  chicken: {
+    radius: 80,
+    body:   '#ffe884',
+    accent: '#ff3a1a',   // comb
+    dark:   '#e0721a',   // beak
+    flesh:  '#ffb494',
+    fat:    '#fff0e0',
+    bone:   '#fffaf2',
+    flash:  '#ffe884',
+  },
+  sheep: {
+    radius: 96,
+    body:   '#fbf3df',   // fleece off-white
+    accent: '#1a1a1a',   // face
+    dark:   '#3a2a1a',
+    flesh:  '#b32a48',
+    fat:    '#ffe5d8',
+    bone:   '#fffaf2',
+    flash:  '#fff0e0',
+  },
+  duck: {
+    radius: 84,
+    body:   '#fff080',
+    accent: '#ff8025',   // bill
+    dark:   '#b85008',
+    flesh:  '#a04030',
+    fat:    '#ffe0c0',
+    bone:   '#fffaf2',
+    flash:  '#ffd24a',
+  },
+  wagyu: {
+    radius: 76,
+    body:   '#b8253a',
+    accent: '#ffd24a',   // gold A5
+    dark:   '#fff0f0',   // marbling
+    flesh:  '#a02238',
+    fat:    '#fff0d8',
+    bone:   '#fffaf2',
+    flash:  '#ffd24a',
+  },
+  no_butcher: {
+    radius: 88,
+    body:   '#ff3340',   // red sign body
+    accent: '#ffffff',   // slash + icon
+    dark:   '#a00010',
+    flesh:  '#ff3340',
+    fat:    '#fff',
+    bone:   '#fff',
+    flash:  '#ff5050',
+  },
 };
 
-export const REGULAR_KINDS: FlyKind[] = ['tralalero', 'tung', 'lirili', 'patapim'];
+export const REGULAR_KINDS: FlyKind[] = ['pig', 'cow', 'chicken', 'sheep', 'duck'];
 
-export function isBomb(kind: FlyKind): boolean { return kind === 'bombardiro'; }
-export function isGolden(kind: FlyKind): boolean { return kind === 'cappuccino'; }
+export function isBomb(kind: FlyKind): boolean { return kind === 'no_butcher'; }
+export function isGolden(kind: FlyKind): boolean { return kind === 'wagyu'; }
 
 export function baseScoreFor(kind: FlyKind): number {
   const r = VISUALS[kind].radius;
-  if (r >= 100) return 15;
-  if (r <= 70)  return 15;
+  if (r >= 96) return 15;   // big animals (cow / sheep)
+  if (r <= 80) return 15;   // small (chicken)
   return 10;
 }
 
@@ -36,25 +92,8 @@ export function pickRegular(rng: () => number): FlyKind {
 export function difficulty(t: number) {
   const spawnInterval = Math.max(0.42, 1.05 - t * 0.008);
   const bombRate = Math.min(0.20, t * 0.0025);
-  const goldenRate = Math.min(0.07, 0.018 + t * 0.0006);
+  const goldenRate = Math.min(0.07, 0.02 + t * 0.0006);
   const waveMin = 1;
   const waveMax = Math.min(4, 1 + Math.floor(t / 16));
   return { spawnInterval, bombRate, goldenRate, waveMin, waveMax };
-}
-
-/** Preload all sprites; resolves when every image is loaded (or errors). */
-export function preloadSprites(): Promise<Record<FlyKind, HTMLImageElement>> {
-  const entries = Object.entries(VISUALS) as Array<[FlyKind, FlyerVisual]>;
-  return Promise.all(entries.map(([kind, v]) => {
-    return new Promise<[FlyKind, HTMLImageElement]>((resolve) => {
-      const img = new Image();
-      img.onload = () => resolve([kind, img]);
-      img.onerror = () => resolve([kind, img]); // resolve anyway; draw will fallback to a placeholder
-      img.src = v.sprite;
-    });
-  })).then(pairs => {
-    const out = {} as Record<FlyKind, HTMLImageElement>;
-    for (const [k, img] of pairs) out[k] = img;
-    return out;
-  });
 }
