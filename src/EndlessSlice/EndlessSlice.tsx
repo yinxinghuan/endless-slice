@@ -89,7 +89,13 @@ export default function EndlessSlice() {
             <div
               key={missLabel + lives}
               className="es-miss-banner"
-              style={{ ['--miss-rot' as any]: `${(Math.random() * 14 - 7).toFixed(1)}deg` }}
+              style={{
+                // Always clearly tilted — magnitude ≥ 6°, never near 0°.
+                ['--miss-rot' as any]: `${(() => {
+                  const sign = Math.random() < 0.5 ? -1 : 1;
+                  return (sign * (6 + Math.random() * 6)).toFixed(1);
+                })()}deg`,
+              }}
             >
               {missLabel}
             </div>

@@ -14,6 +14,13 @@ const CLEAN_STAMPS  = ['PAID', 'A+',      'GRADE A', 'FRESH', 'TOP CUT', 'CHOICE
 
 function pickOne<T>(xs: T[]): T { return xs[Math.floor(Math.random() * xs.length)]; }
 
+/** Random signed angle whose magnitude is guaranteed to be at least `min`,
+ *  up to `max`. Avoids the "almost 0°" range that reads as a rendering bug. */
+function strongTilt(min: number, max: number): number {
+  const sign = Math.random() < 0.5 ? -1 : 1;
+  return sign * (min + Math.random() * (max - min));
+}
+
 interface Props {
   stats: Stats;
   best: number;
@@ -60,12 +67,12 @@ export function EndScreen({ stats, best, onAgain, onOpenLeaderboard }: Props) {
       lead: pickOne(isKilled ? KILLED_LEAD : CLEAN_LEAD),
       tail: pickOne(isKilled ? KILLED_TAIL : CLEAN_TAIL),
       stampWord: pickOne(isKilled ? KILLED_STAMPS : CLEAN_STAMPS),
-      // Receipt sits slightly off-axis each time — pinned-by-different-thumbtack feel.
-      tilt: (Math.random() * 6 - 3).toFixed(2),
-      // Stamp seal floats at a random corner-ish position with a random tilt.
-      stampX: 70 + Math.random() * 14,   // 70–84 %
-      stampY: 58 + Math.random() * 18,   // 58–76 %
-      stampAngle: (Math.random() * 36 - 18).toFixed(1),
+      // Receipt always sits clearly off-axis — never near 0° (looks like a bug).
+      tilt: strongTilt(4, 7).toFixed(2),
+      // Stamp seal floats at a random corner-ish position with a strong tilt.
+      stampX: 64 + Math.random() * 22,   // 64–86 %
+      stampY: 56 + Math.random() * 22,   // 56–78 %
+      stampAngle: strongTilt(12, 24).toFixed(1),
       // Receipt serial — non-sequential so it reads "ticket roll" rather than "score / 7"
       serial: String(1000 + Math.floor(Math.random() * 8999)).padStart(4, '0'),
     };
