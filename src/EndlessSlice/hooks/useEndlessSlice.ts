@@ -513,10 +513,16 @@ export function useEndlessSlice() {
                   sfxMiss();
                   flashRef.current = { at: now, color: '#ff4a4a' };
                   if (livesRef.current <= 0) {
-                    setMissLabel('OUT!');
+                    const outVariants = ['OUT!', 'GAME OVER!', 'BUTCHERED!', 'STRIKE OUT!'];
+                    setMissLabel(outVariants[Math.floor(Math.random() * outVariants.length)]);
                     endRun();
+                  } else if (livesRef.current === 1) {
+                    const lastVariants = ['LAST CHANCE!', 'ONE LEFT!', 'FINAL STRIKE!', 'DON\'T BLOW IT!'];
+                    setMissLabel(lastVariants[Math.floor(Math.random() * lastVariants.length)]);
                   } else {
-                    setMissLabel(livesRef.current === 1 ? 'LAST CHANCE!' : `MISS  ${livesRef.current} LEFT`);
+                    const leads = ['MISS', 'WHOOPS', 'OOPS', 'BUTCHER FAIL', 'OFF THE LEDGER'];
+                    const lead = leads[Math.floor(Math.random() * leads.length)];
+                    setMissLabel(`${lead}  ${livesRef.current} LEFT`);
                   }
                 }
               }

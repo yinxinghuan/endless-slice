@@ -86,7 +86,13 @@ export default function EndlessSlice() {
             </div>
           )}
           {missLabel && (
-            <div key={missLabel + lives} className="es-miss-banner">{missLabel}</div>
+            <div
+              key={missLabel + lives}
+              className="es-miss-banner"
+              style={{ ['--miss-rot' as any]: `${(Math.random() * 14 - 7).toFixed(1)}deg` }}
+            >
+              {missLabel}
+            </div>
           )}
           {showTutorial && <TutorialOverlay />}
         </>

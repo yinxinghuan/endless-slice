@@ -1,8 +1,18 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { t } from '../i18n';
 import type { FlyKind, Stats } from '../types';
 import { VISUALS } from '../utils/food';
 import { drawSlainPetScene } from '../utils/draw';
+
+// Random flavor — re-rolled every time a fresh EndScreen mounts.
+const KILLED_LEAD = ['OH NO',  'CRUELTY!', 'BUTCHER!', 'WOOF!',  'YOU MONSTER'];
+const KILLED_TAIL = ['BAD KARMA', 'NO PETS!', 'BANNED', 'RSPCA INBOUND', 'OFF THE MENU'];
+const CLEAN_LEAD  = ['RECEIPT', 'LEDGER',  'BUTCHER LOG', 'DAILY TALLY', 'STOCK SLIP'];
+const CLEAN_TAIL  = ['PAID IN FULL', 'GRADE A WORK', 'WELL DONE', 'FRESH STOCK', 'CLEAN CUT'];
+const KILLED_STAMPS = ['VOID', 'BANNED', 'CRUEL!', 'OUCH!', 'RIP', 'NOPE'];
+const CLEAN_STAMPS  = ['PAID', 'A+',      'GRADE A', 'FRESH', 'TOP CUT', 'CHOICE'];
+
+function pickOne<T>(xs: T[]): T { return xs[Math.floor(Math.random() * xs.length)]; }
 
 interface Props {
   stats: Stats;
@@ -43,27 +53,50 @@ function SlainPetCanvas({ kind }: { kind: FlyKind }) {
 
 export function EndScreen({ stats, best, onAgain, onOpenLeaderboard }: Props) {
   const killed = stats.killedPet;
+  // Random flavor — rolled once per EndScreen mount so re-renders stay stable.
+  const flavor = useMemo(() => {
+    const isKilled = !!killed;
+    return {
+      lead: pickOne(isKilled ? KILLED_LEAD : CLEAN_LEAD),
+      tail: pickOne(isKilled ? KILLED_TAIL : CLEAN_TAIL),
+      stampWord: pickOne(isKilled ? KILLED_STAMPS : CLEAN_STAMPS),
+      // Receipt sits slightly off-axis each time — pinned-by-different-thumbtack feel.
+      tilt: (Math.random() * 6 - 3).toFixed(2),
+      // Stamp seal floats at a random corner-ish position with a random tilt.
+      stampX: 70 + Math.random() * 14,   // 70–84 %
+      stampY: 58 + Math.random() * 18,   // 58–76 %
+      stampAngle: (Math.random() * 36 - 18).toFixed(1),
+      // Receipt serial — non-sequential so it reads "ticket roll" rather than "score / 7"
+      serial: String(1000 + Math.floor(Math.random() * 8999)).padStart(4, '0'),
+    };
+  }, [killed]);
+
   return (
     <div className="es-overlay es-overlay--end">
-      <div className="es-overlay__inner">
+      <div
+        className="es-overlay__inner"
+        style={{ transform: `rotate(${flavor.tilt}deg)` }}
+      >
         <span className="es-overlay__notch es-overlay__notch--tl" aria-hidden />
         <span className="es-overlay__notch es-overlay__notch--tr" aria-hidden />
         <span className="es-overlay__notch es-overlay__notch--bl" aria-hidden />
         <span className="es-overlay__notch es-overlay__notch--br" aria-hidden />
         <div className="es-stamp-bar">
-          {killed ? (
-            <>
-              <span>OH NO</span>
-              <span>·</span>
-              <span>BAD KARMA</span>
-            </>
-          ) : (
-            <>
-              <span>RECEIPT</span>
-              <span>NO. {Math.floor(stats.finalScore / 7) || 1}</span>
-              <span>PAID IN FULL</span>
-            </>
-          )}
+          <span>{flavor.lead}</span>
+          <span>NO. {flavor.serial}</span>
+          <span>{flavor.tail}</span>
+        </div>
+        {/* Random ink stamp at a random corner */}
+        <div
+          className={`es-ink-stamp ${killed ? 'es-ink-stamp--bad' : 'es-ink-stamp--good'}`}
+          style={{
+            left: `${flavor.stampX}%`,
+            top: `${flavor.stampY}%`,
+            transform: `translate(-50%, -50%) rotate(${flavor.stampAngle}deg)`,
+          }}
+          aria-hidden
+        >
+          {flavor.stampWord}
         </div>
 
         {killed && (

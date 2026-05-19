@@ -250,11 +250,11 @@
   animation: es-miss-banner 1.2s cubic-bezier(.34,1.56,.64,1) forwards;
 }
 @keyframes es-miss-banner {
-  0%   { transform: scale(0.4) rotate(-5deg); opacity: 0; }
-  16%  { transform: scale(1.18) rotate(3deg); opacity: 1; }
-  28%  { transform: scale(1.0)  rotate(0deg); opacity: 1; }
-  78%  { transform: scale(1.0)  rotate(0deg); opacity: 1; }
-  100% { transform: scale(1.14) rotate(-2deg); opacity: 0; }
+  0%   { transform: scale(0.4) rotate(calc(var(--miss-rot, 0deg) + -5deg)); opacity: 0; }
+  16%  { transform: scale(1.18) rotate(calc(var(--miss-rot, 0deg) + 3deg)); opacity: 1; }
+  28%  { transform: scale(1.0)  rotate(var(--miss-rot, 0deg)); opacity: 1; }
+  78%  { transform: scale(1.0)  rotate(var(--miss-rot, 0deg)); opacity: 1; }
+  100% { transform: scale(1.14) rotate(calc(var(--miss-rot, 0deg) + -2deg)); opacity: 0; }
 }
 
 @keyframes es-tier-banner {
@@ -301,7 +301,7 @@
   text-align: center;
   gap: 10px;
   color: @ink;
-  transform: rotate(-3deg);
+  // Tilt is set inline per-render (random per game-over) for variety.
   // Dashed perforation tear-lines at top + bottom (inside the body)
   &::before, &::after {
     content: '';
@@ -330,6 +330,26 @@
 .es-overlay__notch--tr { top: -10px;    right: -10px; }
 .es-overlay__notch--bl { bottom: -10px; left: -10px; }
 .es-overlay__notch--br { bottom: -10px; right: -10px; }
+
+// Random ink-stamp seal that floats inside the receipt
+.es-ink-stamp {
+  position: absolute;
+  font-family: 'Rye', 'Playfair Display', serif;
+  font-size: 22px;
+  letter-spacing: 0.06em;
+  padding: 8px 16px;
+  border: 3px double @blood;
+  border-radius: 4px;
+  color: @blood;
+  text-transform: uppercase;
+  pointer-events: none;
+  opacity: 0.82;
+  background: rgba(245, 232, 200, 0.0);
+  // Slight ink-bleed shadow
+  text-shadow: 0 1px 0 rgba(122, 16, 16, 0.35);
+  &--bad { color: @blood; border-color: @blood; }
+  &--good { color: #5a8a3a; border-color: #5a8a3a; }
+}
 
 // Top "EST" stamp banner that runs across the card top
 .es-stamp-bar {
