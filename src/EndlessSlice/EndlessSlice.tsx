@@ -7,8 +7,6 @@ import { t } from './i18n';
 import alteruUrl from './img/alteru.svg';
 import './EndlessSlice.less';
 
-const PLAYED_KEY = 'endless-slice:played';
-
 export default function EndlessSlice() {
   const {
     canvasRef,
@@ -20,18 +18,10 @@ export default function EndlessSlice() {
   const { isInAigram, submitScore, fetchGlobalLeaderboard, fetchFriendsLeaderboard } =
     useGameScore('endless-slice');
   const [showLeaderboard, setShowLeaderboard] = useState(false);
-
-  // Show the tutorial overlay only on the very first session ever.
-  const [showTutorial, setShowTutorial] = useState<boolean>(() => {
-    try { return !localStorage.getItem(PLAYED_KEY); } catch { return true; }
-  });
-
-  // First user touch → mark played + hide tutorial.
-  useEffect(() => {
-    if (!hasInteracted) return;
-    setShowTutorial(false);
-    try { localStorage.setItem(PLAYED_KEY, '1'); } catch { /* ignore */ }
-  }, [hasInteracted]);
+  // Tutorial loops on every fresh round until the player makes their first
+  // pointer-down. No localStorage gating — the demo should always be there
+  // when the game is asking for input.
+  const showTutorial = !hasInteracted;
 
   useEffect(() => {
     if (screen === 'end' && stats.finalScore > 0) {

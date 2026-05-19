@@ -1,5 +1,5 @@
 import { t } from '../i18n';
-import type { Stats } from '../types';
+import type { FlyKind, Stats } from '../types';
 
 interface Props {
   stats: Stats;
@@ -8,15 +8,46 @@ interface Props {
   onOpenLeaderboard: () => void;
 }
 
+const PET_NAME: Record<string, string> = {
+  puppy:   'PUPPY',
+  kitten:  'KITTEN',
+  bunny:   'BUNNY',
+  hamster: 'HAMSTER',
+};
+
+function petLabel(k: FlyKind | null): string {
+  return k ? (PET_NAME[k] || 'PET') : 'PET';
+}
+
 export function EndScreen({ stats, best, onAgain, onOpenLeaderboard }: Props) {
+  const sliced = !!stats.killedPet;
   return (
     <div className="es-overlay es-overlay--end">
       <div className="es-overlay__inner">
         <div className="es-stamp-bar">
-          <span>RECEIPT</span>
-          <span>NO. {Math.floor(stats.finalScore / 7) || 1}</span>
-          <span>PAID IN FULL</span>
+          {sliced ? (
+            <>
+              <span>OH NO</span>
+              <span>·</span>
+              <span>BAD KARMA</span>
+            </>
+          ) : (
+            <>
+              <span>RECEIPT</span>
+              <span>NO. {Math.floor(stats.finalScore / 7) || 1}</span>
+              <span>PAID IN FULL</span>
+            </>
+          )}
         </div>
+
+        {sliced && (
+          <div className="es-pet-rip">
+            <div className="es-pet-rip__big">YOU SLICED</div>
+            <div className="es-pet-rip__pet">THE {petLabel(stats.killedPet)}</div>
+            <div className="es-pet-rip__small">— pets are not on the menu —</div>
+          </div>
+        )}
+
         {stats.isNewBest && <div className="es-new-best">{t('new_best')}</div>}
         <div className="es-final">
           <div className="es-final__label">{t('final_score')}</div>

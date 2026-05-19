@@ -86,4 +86,6 @@ export interface Stats {
   sliced: number;
   maxCombo: number;
   isNewBest: boolean;
+  /** Pet kind that triggered the game over (if game ended via bomb). */
+  killedPet: FlyKind | null;
 }

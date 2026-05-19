@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Flyer, FlyKind, Half, Impact, Particle, Screen, Stats, TrailPoint } from '../types';
 import { VISUALS, baseScoreFor, difficulty, isBomb, isGolden, pickPet, pickRegular } from '../utils/food';
 import {
-  drawBackground, drawFlyer, drawHalf, drawParticle, drawTitleWatermark, drawTrail, makeDrawCtx,
+  drawBackground, drawFlyer, drawHalf, drawParticle, drawPetBadge, drawTitleWatermark, drawTrail, makeDrawCtx,
 } from '../utils/draw';
 import {
   sfxBomb, sfxMiss, sfxRunEnd, sfxSlice, sfxSwipeStart,
@@ -47,6 +47,10 @@ export function useEndlessSlice() {
   // decrement lives and the difficulty clock doesn't advance — this keeps the
   // game preload-safe and pleasant if the user pauses on the tile.
   const gameStartedRef = useRef<boolean>(false);
+  // True from the moment a bomb (pet) is sliced through the end-screen reveal.
+  // Freezes physics so the user sees the carnage they just caused.
+  const frozenRef = useRef<boolean>(false);
+  const killedPetRef = useRef<FlyKind | null>(null);
   const flyersRef = useRef<Flyer[]>([]);
   const halvesRef = useRef<Half[]>([]);
   const particlesRef = useRef<Particle[]>([]);
@@ -76,7 +80,7 @@ export function useEndlessSlice() {
     return v ? Number(v) || 0 : 0;
   });
   const [stats, setStats] = useState<Stats>({
-    finalScore: 0, sliced: 0, maxCombo: 0, isNewBest: false,
+    finalScore: 0, sliced: 0, maxCombo: 0, isNewBest: false, killedPet: null,
   });
 
   const resize = useCallback(() => {
@@ -117,9 +121,12 @@ export function useEndlessSlice() {
     slicedRef.current = 0;
     maxComboRef.current = 0;
     gameStartedRef.current = false;
+    frozenRef.current = false;
+    killedPetRef.current = null;
     setScore(0);
     setLives(LIVES);
     setComboInSwipe(0);
+    setHasInteracted(false);
     setScreen('playing');
     screenRef.current = 'playing';
     unlockAudio();
@@ -147,6 +154,7 @@ export function useEndlessSlice() {
       sliced: slicedRef.current,
       maxCombo: maxComboRef.current,
       isNewBest,
+      killedPet: killedPetRef.current,
     });
     setScreen('end');
     screenRef.current = 'end';
@@ -385,10 +393,12 @@ export function useEndlessSlice() {
     sfxBomb();
     livesRef.current = 0;
     setLives(0);
-    // Schedule game over after a beat
+    killedPetRef.current = f.kind;
+    // Freeze the scene at the moment of impact so the player sees what they did
+    frozenRef.current = true;
     setTimeout(() => {
       if (screenRef.current === 'playing') endRun();
-    }, 600);
+    }, 700);
     // Big shockwave particles
     const now = performance.now();
     const scale = sizeRef.current.W / 1080;
@@ -466,7 +476,7 @@ export function useEndlessSlice() {
       drawBackground(d, t);
       drawTitleWatermark(d);
 
-      if (screenRef.current === 'playing') {
+      if (screenRef.current === 'playing' && !frozenRef.current) {
         // Only advance the difficulty clock once the player has touched.
         if (gameStartedRef.current) elapsedRef.current += dt;
 
@@ -538,6 +548,10 @@ export function useEndlessSlice() {
       // Draw flyers (only living, non-sliced)
       flyersRef.current.forEach(f => {
         if (!f.sliced) drawFlyer(d, f);
+      });
+      // PET badges always rendered on top of pet flyers in world space (upright)
+      flyersRef.current.forEach(f => {
+        if (!f.sliced && isBomb(f.kind)) drawPetBadge(d, f);
       });
       // Draw halves
       halvesRef.current.forEach(h => drawHalf(d, h));

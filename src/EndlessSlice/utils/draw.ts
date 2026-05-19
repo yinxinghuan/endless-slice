@@ -17,40 +17,80 @@ export function setSprites(_: unknown) { /* noop */ }
 
 export function drawBackground(d: DrawCtx, t: number) {
   const { ctx, W, H } = d;
-  // Butcher-shop interior: deep crimson tiled wall + warm light source top
-  const grad = ctx.createLinearGradient(0, 0, 0, H);
-  grad.addColorStop(0, '#7a1818');
-  grad.addColorStop(0.45, '#481010');
-  grad.addColorStop(1, '#160606');
-  ctx.fillStyle = grad;
-  ctx.fillRect(0, 0, W, H);
 
-  // Tile grid (subtle)
+  // ── 1. Tent fabric: two close-tone reds in vertical stripes ──
+  const stripeW = 78 * d.scale;
+  // Base deep red
+  ctx.fillStyle = '#581010';
+  ctx.fillRect(0, 0, W, H);
+  // Alternate slightly brighter red stripes (close tone, just texture)
+  ctx.fillStyle = '#7a1818';
+  for (let x = -stripeW; x < W + stripeW; x += stripeW * 2) {
+    ctx.fillRect(x, 0, stripeW, H);
+  }
+
+  // Subtle vertical seam shadows (where panels of tent fabric meet)
   ctx.save();
-  ctx.strokeStyle = 'rgba(0,0,0,0.20)';
-  ctx.lineWidth = 1.2 * d.scale;
-  const tile = 86 * d.scale;
-  for (let x = 0; x < W; x += tile) {
-    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke();
-  }
-  for (let y = 0; y < H; y += tile) {
-    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
-  }
-  // Soft highlight on each tile (lighter top-left)
-  ctx.strokeStyle = 'rgba(255, 220, 180, 0.04)';
-  for (let x = 0; x < W; x += tile) {
-    ctx.beginPath(); ctx.moveTo(x + 1, 0); ctx.lineTo(x + 1, H); ctx.stroke();
+  ctx.globalAlpha = 0.18;
+  ctx.fillStyle = '#1a0606';
+  for (let x = -stripeW; x < W + stripeW; x += stripeW * 2) {
+    ctx.fillRect(x - 1 * d.scale, 0, 2 * d.scale, H);
+    ctx.fillRect(x + stripeW - 1 * d.scale, 0, 2 * d.scale, H);
   }
   ctx.restore();
 
-  // Warm overhead light vignette
-  const lg = ctx.createRadialGradient(W * 0.5, -H * 0.1, 40 * d.scale, W * 0.5, H * 0.3, Math.max(W, H));
-  lg.addColorStop(0, 'rgba(255, 200, 130, 0.20)');
+  // ── 2. Top valance: gold scalloped swag ──
+  const valanceH = 64 * d.scale;
+  // Gold band
+  const goldGrad = ctx.createLinearGradient(0, 0, 0, valanceH * 0.5);
+  goldGrad.addColorStop(0, '#ffe27a');
+  goldGrad.addColorStop(1, '#caa028');
+  ctx.fillStyle = goldGrad;
+  ctx.fillRect(0, 0, W, valanceH * 0.4);
+  // Scalloped lower edge of valance
+  ctx.beginPath();
+  ctx.moveTo(0, valanceH * 0.4);
+  const scallopR = valanceH * 0.35;
+  const scallopGap = scallopR * 1.55;
+  for (let x = scallopR * 0.6; x < W + scallopR; x += scallopGap) {
+    ctx.arc(x, valanceH * 0.4, scallopR, 0, Math.PI);
+  }
+  ctx.lineTo(W, valanceH * 0.4);
+  ctx.lineTo(W, 0);
+  ctx.lineTo(0, 0);
+  ctx.closePath();
+  ctx.fillStyle = goldGrad;
+  ctx.fill();
+  // Scallop tassels (small gold drops)
+  ctx.fillStyle = '#caa028';
+  for (let x = scallopR * 0.6 + scallopR; x < W; x += scallopGap) {
+    ctx.beginPath();
+    ctx.arc(x, valanceH * 0.75, scallopR * 0.18, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  // Cream lining under valance
+  ctx.fillStyle = '#f5e8c8';
+  ctx.fillRect(0, valanceH * 0.40, W, 3 * d.scale);
+
+  // ── 3. Bottom stage edge: gold rim ──
+  const stageH = 22 * d.scale;
+  const stageGrad = ctx.createLinearGradient(0, H - stageH, 0, H);
+  stageGrad.addColorStop(0, '#caa028');
+  stageGrad.addColorStop(1, '#7a5818');
+  ctx.fillStyle = stageGrad;
+  ctx.fillRect(0, H - stageH, W, stageH);
+  // Cream highlight at top of stage rim
+  ctx.fillStyle = '#f5e8c8';
+  ctx.fillRect(0, H - stageH, W, 2 * d.scale);
+
+  // ── 4. Warm overhead spotlight ──
+  const lg = ctx.createRadialGradient(W * 0.5, valanceH * 0.5, 40 * d.scale, W * 0.5, H * 0.4, Math.max(W, H));
+  lg.addColorStop(0, 'rgba(255, 220, 150, 0.18)');
   lg.addColorStop(1, 'rgba(0, 0, 0, 0)');
   ctx.fillStyle = lg;
   ctx.fillRect(0, 0, W, H);
 
-  // Floating dust motes
+  // ── 5. Floating dust ──
   ctx.save();
   ctx.globalCompositeOperation = 'lighter';
   for (let i = 0; i < 18; i++) {
@@ -59,7 +99,7 @@ export function drawBackground(d: DrawCtx, t: number) {
     const py = ((Math.cos(seed * 1.3) * 0.5 + 0.5) * H + t * 0.025 * ((i % 4) - 1)) % H;
     const r = (1 + (i % 4)) * 2 * d.scale;
     const a = 0.04 + 0.03 * Math.sin(t * 0.001 + seed);
-    ctx.fillStyle = `rgba(255, 210, 160, ${a})`;
+    ctx.fillStyle = `rgba(255, 220, 160, ${a})`;
     ctx.beginPath();
     ctx.arc(((px % W) + W) % W, ((py % H) + H) % H, r, 0, Math.PI * 2);
     ctx.fill();
@@ -78,43 +118,105 @@ export function drawTitleWatermark(d: DrawCtx) {
   const cx = W / 2;
   const cy = H / 2;
 
-  // Big serif size auto-fits to ~84% of the canvas width so it never wraps.
   const ctx2d = ctx as CanvasRenderingContext2D & { letterSpacing?: string };
-  ctx2d.letterSpacing = '0.02em';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
 
-  const maxW = W * 0.84;
-  let bigSize = Math.min(W * 0.22, H * 0.18);
-  for (; bigSize >= 36; bigSize -= 2) {
-    ctx.font = `italic 900 ${bigSize}px "Playfair Display", "Bodoni 72", "Times New Roman", serif`;
-    // FARM and TABLE share the larger font; measure the longer one.
-    const wm = ctx.measureText('TABLE').width;
-    if (wm <= maxW) break;
+  // Auto-fit big slab-serif words to ~78% of canvas width.
+  const maxW = W * 0.78;
+  let bigSize = Math.min(W * 0.22, H * 0.16);
+  ctx2d.letterSpacing = '0.04em';
+  for (; bigSize >= 30; bigSize -= 2) {
+    ctx.font = `400 ${bigSize}px "Rye", "Playfair Display", "Times New Roman", serif`;
+    if (ctx.measureText('TABLE').width <= maxW) break;
   }
-  const smallSize = bigSize * 0.34;
-  const lineGap = bigSize * 0.86;
+  const tinySize = bigSize * 0.22;
+  const subSize  = bigSize * 0.28;
+  const lineGap  = bigSize * 0.85;
 
-  drawDebossedLine(ctx, 'FARM',  cx, cy - lineGap, bigSize,   'italic 900');
-  drawDebossedLine(ctx, 'to',    cx, cy,           smallSize, 'italic 700');
-  drawDebossedLine(ctx, 'TABLE', cx, cy + lineGap, bigSize,   'italic 900');
+  // Y positions (top to bottom)
+  const yTopRule  = cy - lineGap * 1.6 - subSize * 1.2;
+  const yGreatest = cy - lineGap * 1.6;
+  const yFarm     = cy - lineGap * 0.75;
+  const yTo       = cy;
+  const yTable    = cy + lineGap * 0.75;
+  const yShow     = cy + lineGap * 1.6;
+  const yBotRule  = cy + lineGap * 1.6 + subSize * 1.2;
+
+  // Decorative top / bottom rules with star centerpiece
+  drawCircusRule(ctx, cx, yTopRule, W * 0.66, bigSize * 0.08);
+  drawCircusRule(ctx, cx, yBotRule, W * 0.66, bigSize * 0.08);
+
+  // Sub-titles (Playfair italic — different feel from the slab Rye words)
+  drawDebossedLine(ctx, 'THE GREATEST', cx, yGreatest, subSize, 'italic 800', 'Playfair Display');
+  drawDebossedLine(ctx, 'SHOW ON EARTH', cx, yShow,    subSize, 'italic 800', 'Playfair Display');
+
+  // Main words in Rye (circus poster slab serif)
+  drawDebossedLine(ctx, 'FARM',  cx, yFarm,  bigSize, '400', 'Rye');
+  // Tiny italic "to" with stars flanking it (carnival barker style)
+  drawDebossedLine(ctx, '✶  to  ✶', cx, yTo, tinySize * 1.6, 'italic 700', 'Playfair Display');
+  drawDebossedLine(ctx, 'TABLE', cx, yTable, bigSize, '400', 'Rye');
 
   ctx2d.letterSpacing = '0em';
   ctx.textAlign = 'left';
   ctx.textBaseline = 'alphabetic';
 }
 
-function drawDebossedLine(ctx: CanvasRenderingContext2D, text: string, x: number, y: number, size: number, weight: string) {
-  ctx.font = `${weight} ${size}px "Playfair Display", "Bodoni 72", "Times New Roman", serif`;
-  // Bottom-right rim catches light → subtle warm highlight
-  ctx.fillStyle = 'rgba(255, 220, 180, 0.08)';
-  ctx.fillText(text, x + 1.4, y + 1.8);
-  // Top-left rim falls in shadow → dark edge that "indents" the letter
-  ctx.fillStyle = 'rgba(0, 0, 0, 0.50)';
-  ctx.fillText(text, x - 0.6, y - 1.8);
-  // Carved-in main fill — slightly darker than the tile backdrop
+function drawDebossedLine(ctx: CanvasRenderingContext2D, text: string, x: number, y: number, size: number, weight: string, family = 'Playfair Display') {
+  ctx.font = `${weight} ${size}px "${family}", "Bodoni 72", "Times New Roman", serif`;
+  // Warm bottom-right rim (catches stage light)
+  ctx.fillStyle = 'rgba(255, 220, 180, 0.10)';
+  ctx.fillText(text, x + 1.6, y + 2.0);
+  // Dark top-left rim (indent shadow)
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.55)';
+  ctx.fillText(text, x - 0.6, y - 2.0);
+  // Carved-in main fill
   ctx.fillStyle = '#34080a';
   ctx.fillText(text, x, y);
+}
+
+/** A horizontal decorative rule with a star in the middle, debossed. */
+function drawCircusRule(ctx: CanvasRenderingContext2D, cx: number, cy: number, w: number, h: number) {
+  const halfW = w / 2;
+  const starR = h * 1.6;
+  // The two side bars (gap in the middle for the star)
+  drawDebossedRect(ctx, cx - halfW, cy - h / 2, halfW - starR * 1.4, h);
+  drawDebossedRect(ctx, cx + starR * 1.4, cy - h / 2, halfW - starR * 1.4, h);
+  // Centerpiece star
+  drawDebossedStar(ctx, cx, cy, starR);
+}
+
+function drawDebossedRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number) {
+  // Highlight (warm)
+  ctx.fillStyle = 'rgba(255, 220, 180, 0.10)';
+  ctx.fillRect(x + 1, y + 1, w, h);
+  // Shadow indent
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.55)';
+  ctx.fillRect(x - 0.5, y - 1, w, h);
+  // Carved fill
+  ctx.fillStyle = '#34080a';
+  ctx.fillRect(x, y, w, h);
+}
+
+function drawDebossedStar(ctx: CanvasRenderingContext2D, cx: number, cy: number, r: number) {
+  const points = 5;
+  const drawAt = (dx: number, dy: number, color: string) => {
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    for (let i = 0; i < points * 2; i++) {
+      const ang = (i / (points * 2)) * Math.PI * 2 - Math.PI / 2;
+      const rr = i % 2 === 0 ? r : r * 0.42;
+      const px = cx + dx + Math.cos(ang) * rr;
+      const py = cy + dy + Math.sin(ang) * rr;
+      if (i === 0) ctx.moveTo(px, py);
+      else ctx.lineTo(px, py);
+    }
+    ctx.closePath();
+    ctx.fill();
+  };
+  drawAt(1.4, 1.6, 'rgba(255, 220, 180, 0.10)'); // highlight
+  drawAt(-0.6, -1.6, 'rgba(0, 0, 0, 0.55)');     // shadow
+  drawAt(0, 0, '#34080a');                        // carved fill
 }
 
 // ─── Whole flyer ─────────────────────────────────────────────────────────
@@ -127,6 +229,99 @@ export function drawFlyer(d: DrawCtx, f: Flyer) {
   ctx.rotate(f.rot);
   drawAnimal(ctx, f.kind, r, f.visual);
   ctx.restore();
+}
+
+/**
+ * Big "DO NOT SLICE" badge floating above every pet. Drawn in world space
+ * (NOT inside the body's rotation transform) so it stays upright while the
+ * pet tumbles. Pulsing pink heart + cream disc + caption.
+ */
+export function drawPetBadge(d: DrawCtx, f: Flyer) {
+  const { ctx, scale } = d;
+  const r = f.visual.radius * scale;
+  const t = performance.now();
+  const pulse = 1 + 0.18 * Math.sin(t * 0.006);
+  const bx = f.x;
+  const by = f.y - r * 1.30;
+  const discR = r * 0.34 * pulse;
+
+  // Glow ring
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  for (let i = 0; i < 4; i++) {
+    const rr = discR * (1.25 + i * 0.18);
+    ctx.fillStyle = `rgba(255, 90, 150, ${0.18 - i * 0.04})`;
+    ctx.beginPath();
+    ctx.arc(bx, by, rr, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.restore();
+
+  // Cream disc
+  ctx.fillStyle = '#fff5e8';
+  ctx.beginPath();
+  ctx.arc(bx, by, discR, 0, Math.PI * 2);
+  ctx.fill();
+  // Pink outline
+  ctx.strokeStyle = '#ff4a8a';
+  ctx.lineWidth = 3 * scale;
+  ctx.stroke();
+  // Inner gold outline
+  ctx.strokeStyle = '#ffd24a';
+  ctx.lineWidth = 1.5 * scale;
+  ctx.beginPath();
+  ctx.arc(bx, by, discR - 4 * scale, 0, Math.PI * 2);
+  ctx.stroke();
+
+  // Heart icon inside
+  const heartR = discR * 0.58;
+  ctx.fillStyle = '#ff3a7a';
+  drawHeartPath(ctx, bx, by + heartR * 0.08, heartR);
+  ctx.fill();
+  // Heart highlight
+  ctx.fillStyle = 'rgba(255,255,255,0.5)';
+  ctx.beginPath();
+  ctx.ellipse(bx - heartR * 0.28, by - heartR * 0.18, heartR * 0.18, heartR * 0.12, -0.4, 0, Math.PI * 2);
+  ctx.fill();
+
+  // "PET" caption directly below the disc
+  ctx.font = `900 ${r * 0.20}px "Rye", "Playfair Display", serif`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'top';
+  // Cream chip background
+  const capW = r * 0.66;
+  const capH = r * 0.28;
+  const capX = bx - capW / 2;
+  const capY = by + discR + 2 * scale;
+  ctx.fillStyle = '#fff5e8';
+  ctx.strokeStyle = '#ff4a8a';
+  ctx.lineWidth = 2 * scale;
+  roundRect(ctx, capX, capY, capW, capH, 4 * scale);
+  ctx.fill();
+  ctx.stroke();
+  ctx.fillStyle = '#ff3a7a';
+  ctx.fillText('PET', bx, capY + capH * 0.18);
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'alphabetic';
+}
+
+function drawHeartPath(ctx: CanvasRenderingContext2D, x: number, y: number, r: number) {
+  ctx.beginPath();
+  ctx.moveTo(x, y + r * 0.45);
+  ctx.bezierCurveTo(x + r * 1.0, y - r * 0.05, x + r * 0.55, y - r * 0.85, x, y - r * 0.30);
+  ctx.bezierCurveTo(x - r * 0.55, y - r * 0.85, x - r * 1.0, y - r * 0.05, x, y + r * 0.45);
+  ctx.closePath();
+}
+
+function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
+  const rr = Math.min(r, w / 2, h / 2);
+  ctx.beginPath();
+  ctx.moveTo(x + rr, y);
+  ctx.arcTo(x + w, y, x + w, y + h, rr);
+  ctx.arcTo(x + w, y + h, x, y + h, rr);
+  ctx.arcTo(x, y + h, x, y, rr);
+  ctx.arcTo(x, y, x + w, y, rr);
+  ctx.closePath();
 }
 
 function drawAnimal(ctx: CanvasRenderingContext2D, kind: FlyKind, r: number, v: FlyerVisual) {

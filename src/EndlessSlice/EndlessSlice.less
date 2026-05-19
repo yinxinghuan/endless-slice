@@ -39,14 +39,11 @@
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  padding: 16px 22px 32px;
+  padding: 60px 22px 0; // sit below the gold valance
   pointer-events: none;
   z-index: 5;
 
-  &--top {
-    top: 0;
-    background: linear-gradient(180deg, rgba(0,0,0,0.6) 0%, rgba(0,0,0,0) 100%);
-  }
+  &--top { top: 0; }
 }
 
 .es-hud__cell {
@@ -59,22 +56,24 @@
 .es-hud__label, .es-hud__label--right {
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
   font-size: 9px;
-  letter-spacing: 0.28em;
+  letter-spacing: 0.32em;
   text-transform: uppercase;
-  color: rgba(@cream, 0.5);
-  font-weight: 700;
-  margin-bottom: 2px;
+  color: @gold;
+  font-weight: 800;
+  margin-bottom: 4px;
 }
 
 .es-hud__value {
-  font-family: 'Playfair Display', 'Bodoni 72', Georgia, serif;
-  font-size: 38px;
-  font-weight: 900;
+  font-family: 'Rye', 'Playfair Display', 'Bodoni 72', Georgia, serif;
+  font-size: 32px;
+  font-weight: 400;
   line-height: 1;
-  letter-spacing: -0.02em;
+  letter-spacing: 0.02em;
   color: @cream;
-  text-shadow: 0 2px 0 @blood-2, 0 4px 12px rgba(0,0,0,0.7);
-  font-style: italic;
+  // Carved-letter feel — warm highlight + dark indent, no soft glow
+  text-shadow:
+    1px 1px 0 @blood-2,
+    2px 2px 0 #2a0808;
 }
 
 .es-hud__lives {
@@ -191,45 +190,51 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  // Semi-transparent veil so the slain pet scene stays visible behind the
+  // receipt card — reinforces "this is what you did" instead of hiding it.
   background:
-    radial-gradient(ellipse at center, rgba(74, 16, 12, 0.4) 0%, rgba(20, 6, 4, 0.94) 78%);
+    radial-gradient(ellipse at center, rgba(40, 10, 8, 0.20) 0%, rgba(12, 4, 4, 0.62) 80%);
   z-index: 10;
   padding: 24px;
 }
 
-// Butcher-shop "paper" card
+// Circus poster receipt: cream paper, red + gold frame, marquee-bulb border
 .es-overlay__inner {
   position: relative;
   width: min(420px, 100%);
   background:
     repeating-linear-gradient(90deg,
-      rgba(0,0,0,0.025) 0px,
-      rgba(0,0,0,0.025) 1px,
+      rgba(184, 24, 24, 0.025) 0px,
+      rgba(184, 24, 24, 0.025) 1px,
       transparent 1px,
       transparent 4px),
     linear-gradient(180deg, @cream 0%, @cream-2 100%);
-  border: 1px solid rgba(@ink, 0.4);
+  border: 3px solid @blood;
+  outline: 2px solid @gold;
+  outline-offset: 2px;
   box-shadow:
-    0 0 0 3px @cream,
-    0 0 0 5px @blood-2,
-    0 18px 40px rgba(0,0,0,0.65);
-  padding: 30px 28px 26px;
+    inset 0 0 0 8px @cream,
+    inset 0 0 0 9px @blood,
+    inset 0 0 0 12px @cream,
+    0 18px 40px rgba(0,0,0,0.7);
+  padding: 30px 26px 26px;
   display: flex;
   flex-direction: column;
   align-items: center;
   text-align: center;
-  gap: 12px;
+  gap: 10px;
   color: @ink;
-  // Torn paper feel: top + bottom small notches
+  // Marquee bulbs as a dotted top + bottom border via repeating radial gradient
   &::before, &::after {
     content: '';
     position: absolute;
-    left: 0; right: 0;
-    height: 10px;
-    background: radial-gradient(circle at 4px 0, transparent 4px, @cream 4px) 0 0 / 8px 100% repeat-x;
+    left: 8px; right: 8px;
+    height: 8px;
+    background: radial-gradient(circle, @gold 0 2.2px, transparent 2.5px) 0 0 / 12px 8px repeat-x;
+    opacity: 0.95;
   }
-  &::before { top: -8px; transform: scaleY(-1); }
-  &::after  { bottom: -8px; }
+  &::before { top: 6px; }
+  &::after  { bottom: 6px; }
 }
 
 // Top "EST" stamp banner that runs across the card top
@@ -439,6 +444,39 @@
 }
 
 // ─── End screen ─────────────────────────────────────────────────────────
+
+// Slain pet "in memoriam" block
+.es-pet-rip {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 10px 12px;
+  margin: 2px 0 0;
+  border-top: 1px dashed @blood;
+  border-bottom: 1px dashed @blood;
+  width: 100%;
+}
+.es-pet-rip__big {
+  font-family: 'Rye', 'Playfair Display', serif;
+  font-size: 18px;
+  color: @blood;
+  letter-spacing: 0.08em;
+}
+.es-pet-rip__pet {
+  font-family: 'Rye', 'Playfair Display', serif;
+  font-size: 30px;
+  color: @blood;
+  letter-spacing: 0.06em;
+  line-height: 1.1;
+}
+.es-pet-rip__small {
+  font-family: 'Playfair Display', serif;
+  font-style: italic;
+  font-size: 11px;
+  color: rgba(@ink, 0.6);
+  margin-top: 4px;
+}
 
 .es-new-best {
   font-family: 'Playfair Display', serif;
