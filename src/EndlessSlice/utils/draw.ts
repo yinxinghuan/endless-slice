@@ -1536,7 +1536,7 @@ export function drawImpactTicket(d: DrawCtx, impact: Impact, now: number, lifeti
   const text = impact.text;
   const isCombo = text.startsWith('×');
   const isGolden = text.includes('GOLDEN');
-  const fontSize = (isCombo || isGolden ? 42 : 34) * scale;
+  const fontSize = (isCombo || isGolden ? 60 : 48) * scale;
   ctx.font = `400 ${fontSize}px "Rye", "Playfair Display", serif`;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
