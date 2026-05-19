@@ -6,8 +6,11 @@ export type FlyKind =
   | 'chicken'
   | 'sheep'
   | 'duck'
-  | 'wagyu'   // golden bonus (luxury beef cube)
-  | 'puppy';  // bomb (pet — slicing it ends the run)
+  | 'wagyu'      // golden bonus (luxury beef cube)
+  | 'puppy'      // bomb — golden retriever
+  | 'kitten'     // bomb — gray tabby cat
+  | 'bunny'      // bomb — white rabbit
+  | 'hamster';   // bomb — orange hamster
 
 export interface FlyerVisual {
   /** Display radius in design-units (1080-wide reference canvas) */

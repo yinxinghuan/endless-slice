@@ -1,23 +1,37 @@
 import { useEffect, useState } from 'react';
 import { useEndlessSlice } from './hooks/useEndlessSlice';
-import { StartScreen } from './components/StartScreen';
 import { EndScreen } from './components/EndScreen';
+import { TutorialOverlay } from './components/TutorialOverlay';
 import { useGameScore, Leaderboard } from '@shared/leaderboard';
 import { t } from './i18n';
 import alteruUrl from './img/alteru.svg';
 import './EndlessSlice.less';
 
+const PLAYED_KEY = 'endless-slice:played';
+
 export default function EndlessSlice() {
   const {
     canvasRef,
-    screen, score, lives, comboInSwipe, tierLabel, best, stats,
-    start, home,
+    screen, score, lives, comboInSwipe, tierLabel, best, stats, hasInteracted,
+    start,
     onPointerDown, onPointerMove, onPointerUp,
   } = useEndlessSlice();
 
   const { isInAigram, submitScore, fetchGlobalLeaderboard, fetchFriendsLeaderboard } =
     useGameScore('endless-slice');
   const [showLeaderboard, setShowLeaderboard] = useState(false);
+
+  // Show the tutorial overlay only on the very first session ever.
+  const [showTutorial, setShowTutorial] = useState<boolean>(() => {
+    try { return !localStorage.getItem(PLAYED_KEY); } catch { return true; }
+  });
+
+  // First user touch → mark played + hide tutorial.
+  useEffect(() => {
+    if (!hasInteracted) return;
+    setShowTutorial(false);
+    try { localStorage.setItem(PLAYED_KEY, '1'); } catch { /* ignore */ }
+  }, [hasInteracted]);
 
   useEffect(() => {
     if (screen === 'end' && stats.finalScore > 0) {
@@ -47,6 +61,12 @@ export default function EndlessSlice() {
     >
       <canvas ref={canvasRef} className="es-canvas" />
 
+      {/* Persistent banner — title sits on the game backdrop */}
+      <div className="es-banner" aria-hidden>
+        <div className="es-banner__title">{t('title')}</div>
+        <div className="es-banner__sub">GRADE&nbsp;A · EST. 2026 · DAILY FRESH</div>
+      </div>
+
       {screen === 'playing' && (
         <>
           <div className="es-hud es-hud--top">
@@ -66,7 +86,7 @@ export default function EndlessSlice() {
                   </span>
                 ))}
               </div>
-              <div className="es-hud__label es-hud__label--right">{t('best')}: {best}</div>
+              <div className="es-hud__label es-hud__label--right">{t('best')} · {best}</div>
             </div>
           </div>
           {comboInSwipe >= 2 && (
@@ -80,29 +100,22 @@ export default function EndlessSlice() {
               {tierLabel}
             </div>
           )}
+          {showTutorial && <TutorialOverlay />}
         </>
       )}
 
-      {screen === 'start' && (
-        <StartScreen
-          best={best}
-          onStart={start}
-          onOpenLeaderboard={() => setShowLeaderboard(true)}
-        />
-      )}
       {screen === 'end' && (
         <EndScreen
           stats={stats}
           best={best}
           onAgain={start}
-          onHome={home}
           onOpenLeaderboard={() => setShowLeaderboard(true)}
         />
       )}
 
       {showLeaderboard && (
         <Leaderboard
-          gameName="Endless Slice"
+          gameName="Farm to Table"
           onClose={() => setShowLeaderboard(false)}
           fetchGlobal={fetchGlobalLeaderboard}
           fetchFriends={fetchFriendsLeaderboard}

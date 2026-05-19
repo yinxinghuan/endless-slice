@@ -67,18 +67,53 @@ export const VISUALS: Record<FlyKind, FlyerVisual> = {
     radius: 92,
     body:   '#f0c878',   // golden retriever tan
     accent: '#9c5418',   // dark muzzle / ear tips
-    dark:   '#3a3a3a',   // nose
+    dark:   '#3a3a3a',
     flesh:  '#ff9090',
     fat:    '#fff0e0',
     bone:   '#fffaf2',
-    flash:  '#ff5050',   // the moment you cut it: red flash of regret
+    flash:  '#ff5050',
+  },
+  kitten: {
+    radius: 80,
+    body:   '#b8b4ad',
+    accent: '#5a564f',
+    dark:   '#3a3a3a',
+    flesh:  '#ff9090',
+    fat:    '#fff0e0',
+    bone:   '#fffaf2',
+    flash:  '#ff5050',
+  },
+  bunny: {
+    radius: 76,
+    body:   '#fcfcfc',
+    accent: '#ffd0e0',
+    dark:   '#1a1a1a',
+    flesh:  '#ff9090',
+    fat:    '#fff0e0',
+    bone:   '#fffaf2',
+    flash:  '#ff5050',
+  },
+  hamster: {
+    radius: 60,
+    body:   '#e89e58',
+    accent: '#fff4d8',
+    dark:   '#3a2a18',
+    flesh:  '#ff9090',
+    fat:    '#fff0e0',
+    bone:   '#fffaf2',
+    flash:  '#ff5050',
   },
 };
 
 export const REGULAR_KINDS: FlyKind[] = ['chicken', 'duck', 'pig', 'sheep', 'cow'];
+export const PET_KINDS: FlyKind[] = ['puppy', 'kitten', 'bunny', 'hamster'];
 
-export function isBomb(kind: FlyKind): boolean { return kind === 'puppy'; }
+export function isBomb(kind: FlyKind): boolean { return PET_KINDS.includes(kind); }
 export function isGolden(kind: FlyKind): boolean { return kind === 'wagyu'; }
+
+export function pickPet(rng: () => number): FlyKind {
+  return PET_KINDS[Math.floor(rng() * PET_KINDS.length)];
+}
 
 export function baseScoreFor(kind: FlyKind): number {
   const r = VISUALS[kind].radius;

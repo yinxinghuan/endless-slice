@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Flyer, FlyKind, Half, Impact, Particle, Screen, Stats, TrailPoint } from '../types';
-import { VISUALS, baseScoreFor, difficulty, isBomb, isGolden, pickRegular } from '../utils/food';
+import { VISUALS, baseScoreFor, difficulty, isBomb, isGolden, pickPet, pickRegular } from '../utils/food';
 import {
   drawBackground, drawFlyer, drawHalf, drawParticle, drawTrail, makeDrawCtx,
 } from '../utils/draw';
@@ -17,6 +17,16 @@ const TRAIL_LIFE_MS = 200;
 const FLASH_LIFE_MS = 260;
 const TIER_CALLOUT_LIFE_MS = 850;
 
+function darken(hex: string, amount: number): string {
+  const m = /^#?([0-9a-f]{6})$/i.exec(hex);
+  if (!m) return hex;
+  const n = parseInt(m[1], 16);
+  const r = Math.max(0, Math.round(((n >> 16) & 0xff) * (1 - amount)));
+  const g = Math.max(0, Math.round(((n >> 8) & 0xff) * (1 - amount)));
+  const b = Math.max(0, Math.round((n & 0xff) * (1 - amount)));
+  return `#${((r << 16) | (g << 8) | b).toString(16).padStart(6, '0')}`;
+}
+
 function tierFor(combo: number): string {
   if (combo >= 15) return 'GODLIKE';
   if (combo >= 10) return 'MASSIVE';
@@ -32,7 +42,11 @@ export function useEndlessSlice() {
   const elapsedRef = useRef<number>(0);
   const spawnCooldownRef = useRef<number>(0);
 
-  const screenRef = useRef<Screen>('start');
+  const screenRef = useRef<Screen>('playing');
+  // True after the very first user pointer-down. Until then, misses don't
+  // decrement lives and the difficulty clock doesn't advance — this keeps the
+  // game preload-safe and pleasant if the user pauses on the tile.
+  const gameStartedRef = useRef<boolean>(false);
   const flyersRef = useRef<Flyer[]>([]);
   const halvesRef = useRef<Half[]>([]);
   const particlesRef = useRef<Particle[]>([]);
@@ -51,11 +65,12 @@ export function useEndlessSlice() {
   });
   const uidRef = useRef<number>(1);
 
-  const [screen, setScreen] = useState<Screen>('start');
+  const [screen, setScreen] = useState<Screen>('playing');
   const [score, setScore] = useState(0);
   const [lives, setLives] = useState(LIVES);
   const [comboInSwipe, setComboInSwipe] = useState(0);
   const [tierLabel, setTierLabel] = useState<string>('');
+  const [hasInteracted, setHasInteracted] = useState<boolean>(false);
   const [best, setBest] = useState<number>(() => {
     const v = typeof localStorage !== 'undefined' ? localStorage.getItem(BEST_KEY) : null;
     return v ? Number(v) || 0 : 0;
@@ -82,7 +97,11 @@ export function useEndlessSlice() {
     return () => window.removeEventListener('resize', onResize);
   }, [resize]);
 
+  const didMountStartRef = useRef(false);
 
+
+  // Reset everything to a fresh round; called once on mount (auto-play) and
+  // again on "Play again" from the end screen.
   const start = useCallback(() => {
     flyersRef.current = [];
     halvesRef.current = [];
@@ -97,6 +116,7 @@ export function useEndlessSlice() {
     scoreRef.current = 0;
     slicedRef.current = 0;
     maxComboRef.current = 0;
+    gameStartedRef.current = false;
     setScore(0);
     setLives(LIVES);
     setComboInSwipe(0);
@@ -106,11 +126,12 @@ export function useEndlessSlice() {
     startAmbient();
   }, []);
 
-  const home = useCallback(() => {
-    setScreen('start');
-    screenRef.current = 'start';
-    stopAmbient();
-  }, []);
+  // Auto-start the round on mount (instant-play). StrictMode-safe via ref guard.
+  useEffect(() => {
+    if (didMountStartRef.current) return;
+    didMountStartRef.current = true;
+    start();
+  }, [start]);
 
   const endRun = useCallback(() => {
     stopAmbient();
@@ -146,6 +167,11 @@ export function useEndlessSlice() {
   const onPointerDown = useCallback((clientX: number, clientY: number) => {
     unlockAudio();
     if (screenRef.current !== 'playing') return;
+    // First user touch — the real run begins (misses now count, clock advances).
+    if (!gameStartedRef.current) {
+      gameStartedRef.current = true;
+      setHasInteracted(true);
+    }
     const p = mapPointer(clientX, clientY);
     if (!p) return;
     swipingRef.current = true;
@@ -257,7 +283,12 @@ export function useEndlessSlice() {
     };
     halvesRef.current.push(halfA, halfB);
 
-    // Juice particles — count + speed scale with size and swipe speed
+    if (isBomb(f.kind)) {
+      onBombHit(f);
+      return;
+    }
+
+    // Juice (small + many, omnidirectional puff around the cut)
     const now = performance.now();
     const sizeBoost = Math.max(1, r / (80 * scale));
     const speedBoost = 1 + swipeSpeed * 0.0005;
@@ -277,9 +308,39 @@ export function useEndlessSlice() {
       });
     }
 
-    if (isBomb(f.kind)) {
-      onBombHit(f);
-      return;
+    // BLOOD SPLATTER — fewer, bigger, darker, streaming along swipe direction
+    const splatCount = Math.round(8 * sizeBoost + swipeSpeed * 0.004);
+    const swipeAngle = Math.atan2(swipeVy, swipeVx);
+    for (let i = 0; i < splatCount; i++) {
+      // Skew direction toward swipe vector (±35° cone)
+      const a = swipeAngle + (Math.random() - 0.5) * (Math.PI / 2.6);
+      const sp = (320 + swipeSpeed * 0.45) * scale * (0.5 + Math.random() * 1.1);
+      particlesRef.current.push({
+        uid: uidRef.current++,
+        x: f.x + (Math.random() - 0.5) * r * 0.4,
+        y: f.y + (Math.random() - 0.5) * r * 0.4,
+        vx: Math.cos(a) * sp,
+        vy: Math.sin(a) * sp - 40 * scale,
+        color: i % 4 === 0 ? darken(f.visual.flesh, 0.4) : f.visual.flesh,
+        size: (6 + Math.random() * 9) * scale * sizeBoost,
+        life: 900 + Math.random() * 700,
+        born: now,
+      });
+    }
+    // A few extra-large droplets that fly far
+    for (let i = 0; i < 3; i++) {
+      const a = swipeAngle + (Math.random() - 0.5) * 0.6;
+      const sp = (500 + swipeSpeed * 0.6) * scale * (0.7 + Math.random() * 0.8);
+      particlesRef.current.push({
+        uid: uidRef.current++,
+        x: f.x, y: f.y,
+        vx: Math.cos(a) * sp,
+        vy: Math.sin(a) * sp - 60 * scale,
+        color: darken(f.visual.flesh, 0.45),
+        size: (10 + Math.random() * 8) * scale * sizeBoost,
+        life: 1100 + Math.random() * 600,
+        born: now,
+      });
     }
 
     slicedRef.current += 1;
@@ -358,7 +419,7 @@ export function useEndlessSlice() {
     for (let i = 0; i < count; i++) {
       let kind: FlyKind;
       const roll = Math.random();
-      if (roll < bombRate) kind = 'puppy';
+      if (roll < bombRate) kind = pickPet(Math.random);
       else if (roll < bombRate + goldenRate) kind = 'wagyu';
       else kind = pickRegular(Math.random);
       const visual = VISUALS[kind];
@@ -405,7 +466,8 @@ export function useEndlessSlice() {
       drawBackground(d, t);
 
       if (screenRef.current === 'playing') {
-        elapsedRef.current += dt;
+        // Only advance the difficulty clock once the player has touched.
+        if (gameStartedRef.current) elapsedRef.current += dt;
 
         // Spawn
         spawnCooldownRef.current -= dt;
@@ -428,7 +490,8 @@ export function useEndlessSlice() {
             if (f.y - f.visual.radius * scale > H + 40 * scale) {
               if (!f.missed) {
                 f.missed = true;
-                if (!isBomb(f.kind) && !isGolden(f.kind)) {
+                // Misses only count after the player has actually started playing.
+                if (gameStartedRef.current && !isBomb(f.kind) && !isGolden(f.kind)) {
                   livesRef.current -= 1;
                   setLives(livesRef.current);
                   sfxMiss();
@@ -547,8 +610,8 @@ export function useEndlessSlice() {
 
   return {
     canvasRef,
-    screen, score, lives, comboInSwipe, tierLabel, best, stats,
-    start, home,
+    screen, score, lives, comboInSwipe, tierLabel, best, stats, hasInteracted,
+    start,
     onPointerDown, onPointerMove, onPointerUp,
   };
 }

@@ -88,6 +88,9 @@ function drawAnimal(ctx: CanvasRenderingContext2D, kind: FlyKind, r: number, v: 
     case 'cow':      drawCow(ctx, r, v); break;
     case 'wagyu':    drawWagyu(ctx, r, v); break;
     case 'puppy':    drawPuppy(ctx, r, v); break;
+    case 'kitten':   drawKitten(ctx, r, v); break;
+    case 'bunny':    drawBunny(ctx, r, v); break;
+    case 'hamster':  drawHamster(ctx, r, v); break;
   }
 }
 
@@ -745,6 +748,308 @@ function drawPuppy(ctx: CanvasRenderingContext2D, r: number, v: FlyerVisual) {
   ctx.stroke();
 
   // Subtle "halo" of innocence (very faint warm glow ring)
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  for (let i = 0; i < 5; i++) {
+    const rr = r * (1.10 + i * 0.02);
+    ctx.strokeStyle = `rgba(255, 240, 180, ${0.05 - i * 0.008})`;
+    ctx.lineWidth = r * 0.04;
+    ctx.beginPath();
+    ctx.arc(hx, hy, rr, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+// ────────────── KITTEN (bomb — gray tabby) ──────────────
+function drawKitten(ctx: CanvasRenderingContext2D, r: number, v: FlyerVisual) {
+  const bx = 0, by = 0;
+  // Tail (curled up behind body)
+  ctx.fillStyle = v.body;
+  ctx.beginPath();
+  ctx.ellipse(bx - r * 0.90, by - r * 0.10, r * 0.08, r * 0.30, 0.4, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Legs
+  ctx.fillStyle = darken(v.body, 0.05);
+  for (const lx of [-0.40, 0.45]) {
+    ctx.beginPath();
+    ctx.ellipse(bx + lx * r, by + r * 0.45, r * 0.12, r * 0.22, 0, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  // Body
+  fillBody(ctx, v.body, bx, by, r * 0.78, r * 0.50);
+  // Stripes
+  ctx.strokeStyle = withAlpha(v.accent, 0.6);
+  ctx.lineWidth = r * 0.05;
+  for (let i = -2; i <= 2; i++) {
+    ctx.beginPath();
+    ctx.moveTo(bx + i * r * 0.2, by - r * 0.45);
+    ctx.lineTo(bx + i * r * 0.2 + r * 0.05, by - r * 0.20);
+    ctx.stroke();
+  }
+  outlineEllipse(ctx, bx, by, r * 0.78, r * 0.50);
+
+  // Head
+  const hx = bx + r * 0.70, hy = by - r * 0.30;
+  fillBody(ctx, v.body, hx, hy, r * 0.40, r * 0.38);
+
+  // Pointy ears
+  ctx.fillStyle = v.body;
+  ctx.beginPath();
+  ctx.moveTo(hx - r * 0.32, hy - r * 0.18);
+  ctx.lineTo(hx - r * 0.20, hy - r * 0.52);
+  ctx.lineTo(hx - r * 0.06, hy - r * 0.28);
+  ctx.closePath();
+  ctx.fill();
+  ctx.beginPath();
+  ctx.moveTo(hx + r * 0.06, hy - r * 0.28);
+  ctx.lineTo(hx + r * 0.20, hy - r * 0.52);
+  ctx.lineTo(hx + r * 0.32, hy - r * 0.18);
+  ctx.closePath();
+  ctx.fill();
+  // Inner ears (pink)
+  ctx.fillStyle = '#ffc0d0';
+  ctx.beginPath();
+  ctx.moveTo(hx - r * 0.22, hy - r * 0.24);
+  ctx.lineTo(hx - r * 0.18, hy - r * 0.40);
+  ctx.lineTo(hx - r * 0.12, hy - r * 0.26);
+  ctx.closePath();
+  ctx.fill();
+  ctx.beginPath();
+  ctx.moveTo(hx + r * 0.12, hy - r * 0.26);
+  ctx.lineTo(hx + r * 0.18, hy - r * 0.40);
+  ctx.lineTo(hx + r * 0.22, hy - r * 0.24);
+  ctx.closePath();
+  ctx.fill();
+  outlineEllipse(ctx, hx, hy, r * 0.40, r * 0.38);
+
+  // Eyes (large green to read as cat)
+  ctx.fillStyle = '#7ad06a';
+  ctx.beginPath();
+  ctx.ellipse(hx - r * 0.13, hy, r * 0.08, r * 0.10, 0, 0, Math.PI * 2);
+  ctx.ellipse(hx + r * 0.13, hy, r * 0.08, r * 0.10, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = '#1a1a1a';
+  ctx.fillRect(hx - r * 0.14, hy - r * 0.10, r * 0.02, r * 0.20);
+  ctx.fillRect(hx + r * 0.12, hy - r * 0.10, r * 0.02, r * 0.20);
+
+  // Pink nose
+  ctx.fillStyle = '#ff80a0';
+  ctx.beginPath();
+  ctx.moveTo(hx, hy + r * 0.05);
+  ctx.lineTo(hx - r * 0.05, hy + r * 0.12);
+  ctx.lineTo(hx + r * 0.05, hy + r * 0.12);
+  ctx.closePath();
+  ctx.fill();
+  // Whiskers
+  ctx.strokeStyle = withAlpha('#fff', 0.7);
+  ctx.lineWidth = r * 0.01;
+  for (const yo of [-0.04, 0, 0.04]) {
+    ctx.beginPath();
+    ctx.moveTo(hx - r * 0.10, hy + r * 0.16 + yo * r);
+    ctx.lineTo(hx - r * 0.40, hy + r * 0.16 + yo * 1.5 * r);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(hx + r * 0.10, hy + r * 0.16 + yo * r);
+    ctx.lineTo(hx + r * 0.40, hy + r * 0.16 + yo * 1.5 * r);
+    ctx.stroke();
+  }
+
+  // Red bow-tie collar (pet signifier)
+  ctx.fillStyle = '#e23b3b';
+  ctx.beginPath();
+  ctx.moveTo(hx - r * 0.18, hy + r * 0.30);
+  ctx.lineTo(hx - r * 0.30, hy + r * 0.20);
+  ctx.lineTo(hx - r * 0.30, hy + r * 0.40);
+  ctx.closePath();
+  ctx.fill();
+  ctx.beginPath();
+  ctx.moveTo(hx + r * 0.18, hy + r * 0.30);
+  ctx.lineTo(hx + r * 0.30, hy + r * 0.20);
+  ctx.lineTo(hx + r * 0.30, hy + r * 0.40);
+  ctx.closePath();
+  ctx.fill();
+  ctx.fillStyle = '#a01818';
+  ctx.fillRect(hx - r * 0.06, hy + r * 0.24, r * 0.12, r * 0.12);
+
+  drawPetHalo(ctx, hx, hy, r);
+}
+
+// ────────────── BUNNY (bomb — white rabbit) ──────────────
+function drawBunny(ctx: CanvasRenderingContext2D, r: number, v: FlyerVisual) {
+  const bx = 0, by = 0;
+
+  // Hind legs (big rabbit hops)
+  ctx.fillStyle = darken(v.body, 0.04);
+  ctx.beginPath();
+  ctx.ellipse(bx - r * 0.42, by + r * 0.50, r * 0.20, r * 0.16, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.ellipse(bx + r * 0.48, by + r * 0.50, r * 0.20, r * 0.16, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Body (egg-shaped)
+  fillBody(ctx, v.body, bx, by, r * 0.65, r * 0.55);
+  outlineEllipse(ctx, bx, by, r * 0.65, r * 0.55);
+
+  // Cotton tail
+  ctx.fillStyle = '#fff';
+  ctx.beginPath();
+  ctx.arc(bx - r * 0.60, by + r * 0.10, r * 0.10, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Front paws
+  ctx.fillStyle = v.body;
+  ctx.beginPath();
+  ctx.ellipse(bx + r * 0.20, by + r * 0.40, r * 0.10, r * 0.13, 0, 0, Math.PI * 2);
+  ctx.ellipse(bx + r * 0.42, by + r * 0.40, r * 0.10, r * 0.13, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Head
+  const hx = bx + r * 0.55, hy = by - r * 0.30;
+  // Long ears (behind head)
+  ctx.fillStyle = v.body;
+  ctx.beginPath();
+  ctx.ellipse(hx - r * 0.18, hy - r * 0.50, r * 0.10, r * 0.34, -0.18, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.ellipse(hx + r * 0.18, hy - r * 0.50, r * 0.10, r * 0.34, 0.18, 0, Math.PI * 2);
+  ctx.fill();
+  // Inner ear (pink)
+  ctx.fillStyle = v.accent;
+  ctx.beginPath();
+  ctx.ellipse(hx - r * 0.18, hy - r * 0.50, r * 0.05, r * 0.26, -0.18, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.ellipse(hx + r * 0.18, hy - r * 0.50, r * 0.05, r * 0.26, 0.18, 0, Math.PI * 2);
+  ctx.fill();
+
+  fillBody(ctx, v.body, hx, hy, r * 0.36, r * 0.34);
+  outlineEllipse(ctx, hx, hy, r * 0.36, r * 0.34);
+
+  // Eyes (round black)
+  drawEye(ctx, hx - r * 0.13, hy - r * 0.04, r * 0.07);
+  drawEye(ctx, hx + r * 0.13, hy - r * 0.04, r * 0.07);
+
+  // Pink nose
+  ctx.fillStyle = v.accent;
+  ctx.beginPath();
+  ctx.moveTo(hx, hy + r * 0.10);
+  ctx.lineTo(hx - r * 0.05, hy + r * 0.16);
+  ctx.lineTo(hx + r * 0.05, hy + r * 0.16);
+  ctx.closePath();
+  ctx.fill();
+  // Mouth (Y shape under nose)
+  ctx.strokeStyle = v.dark;
+  ctx.lineWidth = r * 0.015;
+  ctx.beginPath();
+  ctx.moveTo(hx, hy + r * 0.16);
+  ctx.lineTo(hx, hy + r * 0.22);
+  ctx.moveTo(hx, hy + r * 0.22);
+  ctx.lineTo(hx - r * 0.04, hy + r * 0.27);
+  ctx.moveTo(hx, hy + r * 0.22);
+  ctx.lineTo(hx + r * 0.04, hy + r * 0.27);
+  ctx.stroke();
+
+  // Pink ribbon collar with carrot tag (pet signifier)
+  ctx.fillStyle = '#ff7aa8';
+  ctx.beginPath();
+  ctx.ellipse(hx - r * 0.05, hy + r * 0.34, r * 0.20, r * 0.05, 0.1, 0, Math.PI * 2);
+  ctx.fill();
+  // Carrot tag
+  ctx.fillStyle = '#ff8025';
+  ctx.beginPath();
+  ctx.moveTo(hx + r * 0.05, hy + r * 0.42);
+  ctx.lineTo(hx + r * 0.02, hy + r * 0.56);
+  ctx.lineTo(hx + r * 0.10, hy + r * 0.56);
+  ctx.closePath();
+  ctx.fill();
+  ctx.fillStyle = '#3aa84a';
+  ctx.fillRect(hx + r * 0.03, hy + r * 0.40, r * 0.06, r * 0.04);
+
+  drawPetHalo(ctx, hx, hy, r);
+}
+
+// ────────────── HAMSTER (bomb — small + adorable) ──────────────
+function drawHamster(ctx: CanvasRenderingContext2D, r: number, v: FlyerVisual) {
+  const bx = 0, by = 0;
+  // Small round body
+  fillBody(ctx, v.body, bx, by, r * 0.85, r * 0.78);
+  // Belly patch (cream)
+  ctx.fillStyle = v.accent;
+  ctx.beginPath();
+  ctx.ellipse(bx, by + r * 0.15, r * 0.55, r * 0.45, 0, 0, Math.PI * 2);
+  ctx.fill();
+  outlineEllipse(ctx, bx, by, r * 0.85, r * 0.78);
+
+  // Tiny ears
+  ctx.fillStyle = darken(v.body, 0.15);
+  ctx.beginPath();
+  ctx.arc(bx - r * 0.45, by - r * 0.55, r * 0.16, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.arc(bx + r * 0.45, by - r * 0.55, r * 0.16, 0, Math.PI * 2);
+  ctx.fill();
+  // Inner ear pink
+  ctx.fillStyle = '#ffc8b8';
+  ctx.beginPath();
+  ctx.arc(bx - r * 0.45, by - r * 0.55, r * 0.08, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.arc(bx + r * 0.45, by - r * 0.55, r * 0.08, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Tiny paws on belly
+  ctx.fillStyle = darken(v.body, 0.10);
+  ctx.beginPath();
+  ctx.ellipse(bx - r * 0.12, by + r * 0.55, r * 0.08, r * 0.06, 0, 0, Math.PI * 2);
+  ctx.ellipse(bx + r * 0.12, by + r * 0.55, r * 0.08, r * 0.06, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Eyes (huge black)
+  drawEye(ctx, bx - r * 0.20, by - r * 0.10, r * 0.10);
+  drawEye(ctx, bx + r * 0.20, by - r * 0.10, r * 0.10);
+
+  // Tiny pink nose
+  ctx.fillStyle = '#ff80a0';
+  ctx.beginPath();
+  ctx.ellipse(bx, by + r * 0.10, r * 0.06, r * 0.04, 0, 0, Math.PI * 2);
+  ctx.fill();
+  // Mouth
+  ctx.strokeStyle = v.dark;
+  ctx.lineWidth = r * 0.015;
+  ctx.beginPath();
+  ctx.moveTo(bx, by + r * 0.14);
+  ctx.lineTo(bx, by + r * 0.20);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.arc(bx, by + r * 0.20, r * 0.06, 0, Math.PI);
+  ctx.stroke();
+
+  // Sunflower seed in hand (pet signifier)
+  ctx.save();
+  ctx.translate(bx + r * 0.35, by + r * 0.30);
+  ctx.rotate(-0.4);
+  ctx.fillStyle = '#3a2a18';
+  ctx.beginPath();
+  ctx.ellipse(0, 0, r * 0.08, r * 0.13, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = '#caa078';
+  ctx.lineWidth = r * 0.012;
+  for (let i = 0; i < 4; i++) {
+    const a = (i / 4) * Math.PI * 2;
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.lineTo(Math.cos(a) * r * 0.04, Math.sin(a) * r * 0.06);
+    ctx.stroke();
+  }
+  ctx.restore();
+
+  drawPetHalo(ctx, bx, by - r * 0.1, r);
+}
+
+function drawPetHalo(ctx: CanvasRenderingContext2D, hx: number, hy: number, r: number) {
   ctx.save();
   ctx.globalCompositeOperation = 'lighter';
   for (let i = 0; i < 5; i++) {

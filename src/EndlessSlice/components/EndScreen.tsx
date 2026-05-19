@@ -5,11 +5,10 @@ interface Props {
   stats: Stats;
   best: number;
   onAgain: () => void;
-  onHome: () => void;
   onOpenLeaderboard: () => void;
 }
 
-export function EndScreen({ stats, best, onAgain, onHome, onOpenLeaderboard }: Props) {
+export function EndScreen({ stats, best, onAgain, onOpenLeaderboard }: Props) {
   return (
     <div className="es-overlay es-overlay--end">
       <div className="es-overlay__inner">
@@ -39,8 +38,7 @@ export function EndScreen({ stats, best, onAgain, onHome, onOpenLeaderboard }: P
         </div>
         <div className="es-buttons">
           <button className="es-btn es-btn--primary" onPointerDown={onAgain}>{t('again')}</button>
-          <button className="es-btn" onPointerDown={onOpenLeaderboard}>{t('leaderboard')}</button>
-          <button className="es-btn es-btn--ghost" onPointerDown={onHome}>{t('home')}</button>
+          <button className="es-btn es-btn--ghost" onPointerDown={onOpenLeaderboard}>{t('leaderboard')}</button>
         </div>
       </div>
     </div>
