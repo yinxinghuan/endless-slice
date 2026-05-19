@@ -160,71 +160,156 @@ const N: Record<string, number> = {
 };
 
 interface Note { midi: number; beat: number; dur: number; gain?: number }
+interface Phrase { melody: Note[]; bass: Note[]; beats: number; tempoBpm: number }
 
-// Melody: bouncy F-major motif over 16 beats (8 bars × 2/4).
-// Notation: each beat = 0.5 (so 16 beats = 16 × beatSec).
-const MELODY: Note[] = [
-  // Bar 1: F-A-C-A
-  { midi: N.F4,  beat: 0,    dur: 0.5 },
-  { midi: N.A4,  beat: 0.5,  dur: 0.5 },
-  { midi: N.C5,  beat: 1,    dur: 0.5 },
-  { midi: N.A4,  beat: 1.5,  dur: 0.5 },
-  // Bar 2: F-A-C-F5
-  { midi: N.F4,  beat: 2,    dur: 0.5 },
-  { midi: N.A4,  beat: 2.5,  dur: 0.5 },
-  { midi: N.C5,  beat: 3,    dur: 0.5 },
-  { midi: N.F5,  beat: 3.5,  dur: 0.5 },
-  // Bar 3: E-D-C-Bb (descending)
-  { midi: N.E5,  beat: 4,    dur: 0.5 },
-  { midi: N.D5,  beat: 4.5,  dur: 0.5 },
-  { midi: N.C5,  beat: 5,    dur: 0.5 },
-  { midi: N.Bb4, beat: 5.5,  dur: 0.5 },
-  // Bar 4: A-G-A (resolve up)
-  { midi: N.A4,  beat: 6,    dur: 1.0 },
-  { midi: N.G4,  beat: 7,    dur: 0.5 },
-  { midi: N.A4,  beat: 7.5,  dur: 0.5 },
-  // Bar 5-6: turn (G-Bb-D-Bb / G-Bb-D-G5)
-  { midi: N.G4,  beat: 8,    dur: 0.5 },
-  { midi: N.Bb4, beat: 8.5,  dur: 0.5 },
-  { midi: N.D5,  beat: 9,    dur: 0.5 },
-  { midi: N.Bb4, beat: 9.5,  dur: 0.5 },
-  { midi: N.G4,  beat: 10,   dur: 0.5 },
-  { midi: N.Bb4, beat: 10.5, dur: 0.5 },
-  { midi: N.D5,  beat: 11,   dur: 0.5 },
-  { midi: N.G5,  beat: 11.5, dur: 0.5 },
-  // Bar 7: D-C-Bb-A
-  { midi: N.D5,  beat: 12,   dur: 0.5 },
-  { midi: N.C5,  beat: 12.5, dur: 0.5 },
-  { midi: N.Bb4, beat: 13,   dur: 0.5 },
-  { midi: N.A4,  beat: 13.5, dur: 0.5 },
-  // Bar 8: F-G-F (final cadence)
-  { midi: N.F4,  beat: 14,   dur: 0.5 },
-  { midi: N.G4,  beat: 14.5, dur: 0.5 },
-  { midi: N.F4,  beat: 15,   dur: 1.0 },
-];
-
-// Bass: oompa (low root on beat, fifth on off-beat). Switches root each 2 bars.
-const BASS: Note[] = (() => {
+function makeBass(bars: Array<{ root: number; fifth: number }>): Note[] {
   const out: Note[] = [];
-  // Bars 1-4: F (F2 low, C3 mid)
-  // Bars 5-6: G (G2, D3)
-  // Bars 7-8: F → C → F resolve
-  const bars = [
-    { root: N.F3 - 12, fifth: N.C4 - 12 }, // bar 1
-    { root: N.F3 - 12, fifth: N.C4 - 12 }, // bar 2
-    { root: N.F3 - 12, fifth: N.C4 - 12 }, // bar 3
-    { root: N.F3 - 12, fifth: N.C4 - 12 }, // bar 4
-    { root: N.G3 - 12, fifth: N.D4 - 12 }, // bar 5
-    { root: N.G3 - 12, fifth: N.D4 - 12 }, // bar 6
-    { root: N.C4 - 12, fifth: N.G4 - 12 }, // bar 7 (dominant)
-    { root: N.F3 - 12, fifth: N.C4 - 12 }, // bar 8
-  ];
   bars.forEach((b, i) => {
-    out.push({ midi: b.root,  beat: i * 2,        dur: 0.45, gain: 0.10 });
-    out.push({ midi: b.fifth, beat: i * 2 + 1,    dur: 0.45, gain: 0.07 });
+    out.push({ midi: b.root,  beat: i * 2,     dur: 0.45, gain: 0.10 });
+    out.push({ midi: b.fifth, beat: i * 2 + 1, dur: 0.45, gain: 0.07 });
   });
   return out;
-})();
+}
+
+// ── Phrase A: bouncy F-major march (the original) ──
+const PHRASE_A: Phrase = {
+  beats: 16,
+  tempoBpm: 132,
+  melody: [
+    { midi: N.F4,  beat: 0,    dur: 0.5 },
+    { midi: N.A4,  beat: 0.5,  dur: 0.5 },
+    { midi: N.C5,  beat: 1,    dur: 0.5 },
+    { midi: N.A4,  beat: 1.5,  dur: 0.5 },
+    { midi: N.F4,  beat: 2,    dur: 0.5 },
+    { midi: N.A4,  beat: 2.5,  dur: 0.5 },
+    { midi: N.C5,  beat: 3,    dur: 0.5 },
+    { midi: N.F5,  beat: 3.5,  dur: 0.5 },
+    { midi: N.E5,  beat: 4,    dur: 0.5 },
+    { midi: N.D5,  beat: 4.5,  dur: 0.5 },
+    { midi: N.C5,  beat: 5,    dur: 0.5 },
+    { midi: N.Bb4, beat: 5.5,  dur: 0.5 },
+    { midi: N.A4,  beat: 6,    dur: 1.0 },
+    { midi: N.G4,  beat: 7,    dur: 0.5 },
+    { midi: N.A4,  beat: 7.5,  dur: 0.5 },
+    { midi: N.G4,  beat: 8,    dur: 0.5 },
+    { midi: N.Bb4, beat: 8.5,  dur: 0.5 },
+    { midi: N.D5,  beat: 9,    dur: 0.5 },
+    { midi: N.Bb4, beat: 9.5,  dur: 0.5 },
+    { midi: N.G4,  beat: 10,   dur: 0.5 },
+    { midi: N.Bb4, beat: 10.5, dur: 0.5 },
+    { midi: N.D5,  beat: 11,   dur: 0.5 },
+    { midi: N.G5,  beat: 11.5, dur: 0.5 },
+    { midi: N.D5,  beat: 12,   dur: 0.5 },
+    { midi: N.C5,  beat: 12.5, dur: 0.5 },
+    { midi: N.Bb4, beat: 13,   dur: 0.5 },
+    { midi: N.A4,  beat: 13.5, dur: 0.5 },
+    { midi: N.F4,  beat: 14,   dur: 0.5 },
+    { midi: N.G4,  beat: 14.5, dur: 0.5 },
+    { midi: N.F4,  beat: 15,   dur: 1.0 },
+  ],
+  bass: makeBass([
+    { root: N.F3 - 12, fifth: N.C4 - 12 }, { root: N.F3 - 12, fifth: N.C4 - 12 },
+    { root: N.F3 - 12, fifth: N.C4 - 12 }, { root: N.F3 - 12, fifth: N.C4 - 12 },
+    { root: N.G3 - 12, fifth: N.D4 - 12 }, { root: N.G3 - 12, fifth: N.D4 - 12 },
+    { root: N.C4 - 12, fifth: N.G4 - 12 }, { root: N.F3 - 12, fifth: N.C4 - 12 },
+  ]),
+};
+
+// ── Phrase B: more syncopated F-major variation ──
+const PHRASE_B: Phrase = {
+  beats: 16,
+  tempoBpm: 132,
+  melody: [
+    // Bar 1-2: skip up the chord then back down
+    { midi: N.F4,  beat: 0,    dur: 1.0 },
+    { midi: N.C5,  beat: 1,    dur: 0.5 },
+    { midi: N.A4,  beat: 1.5,  dur: 0.5 },
+    { midi: N.F5,  beat: 2,    dur: 0.5 },
+    { midi: N.E5,  beat: 2.5,  dur: 0.5 },
+    { midi: N.C5,  beat: 3,    dur: 0.5 },
+    { midi: N.A4,  beat: 3.5,  dur: 0.5 },
+    // Bar 3-4: galloping descent
+    { midi: N.Bb4, beat: 4,    dur: 0.5 },
+    { midi: N.A4,  beat: 4.5,  dur: 0.5 },
+    { midi: N.G4,  beat: 5,    dur: 0.5 },
+    { midi: N.A4,  beat: 5.5,  dur: 0.5 },
+    { midi: N.F4,  beat: 6,    dur: 0.5 },
+    { midi: N.G4,  beat: 6.5,  dur: 0.5 },
+    { midi: N.A4,  beat: 7,    dur: 1.0 },
+    // Bar 5-6: turn up to high F
+    { midi: N.C5,  beat: 8,    dur: 0.5 },
+    { midi: N.E5,  beat: 8.5,  dur: 0.5 },
+    { midi: N.D5,  beat: 9,    dur: 0.5 },
+    { midi: N.C5,  beat: 9.5,  dur: 0.5 },
+    { midi: N.Bb4, beat: 10,   dur: 0.5 },
+    { midi: N.D5,  beat: 10.5, dur: 0.5 },
+    { midi: N.C5,  beat: 11,   dur: 0.5 },
+    { midi: N.A4,  beat: 11.5, dur: 0.5 },
+    // Bar 7-8: cadence with a held resolution
+    { midi: N.G4,  beat: 12,   dur: 0.5 },
+    { midi: N.Bb4, beat: 12.5, dur: 0.5 },
+    { midi: N.A4,  beat: 13,   dur: 0.5 },
+    { midi: N.G4,  beat: 13.5, dur: 0.5 },
+    { midi: N.F4,  beat: 14,   dur: 0.5 },
+    { midi: N.A4,  beat: 14.5, dur: 0.5 },
+    { midi: N.F4,  beat: 15,   dur: 1.0 },
+  ],
+  bass: makeBass([
+    { root: N.F3 - 12, fifth: N.C4 - 12 }, { root: N.F3 - 12, fifth: N.C4 - 12 },
+    { root: N.D4 - 12, fifth: N.A4 - 12 }, { root: N.D4 - 12, fifth: N.A4 - 12 }, // Dm
+    { root: N.Bb3 - 12, fifth: N.F4 - 12 }, { root: N.Bb3 - 12, fifth: N.F4 - 12 }, // Bb
+    { root: N.C4 - 12, fifth: N.G4 - 12 }, { root: N.F3 - 12, fifth: N.C4 - 12 }, // C → F
+  ]),
+};
+
+// ── Phrase C: minor-key sinister circus (D minor) ──
+const PHRASE_C: Phrase = {
+  beats: 16,
+  tempoBpm: 124, // slightly slower for ominous weight
+  melody: [
+    // Bar 1-2: D minor arpeggios
+    { midi: N.D4,  beat: 0,    dur: 0.5 },
+    { midi: N.F4,  beat: 0.5,  dur: 0.5 },
+    { midi: N.A4,  beat: 1,    dur: 0.5 },
+    { midi: N.D5,  beat: 1.5,  dur: 0.5 },
+    { midi: N.D4,  beat: 2,    dur: 0.5 },
+    { midi: N.F4,  beat: 2.5,  dur: 0.5 },
+    { midi: N.A4,  beat: 3,    dur: 0.5 },
+    { midi: N.D5,  beat: 3.5,  dur: 0.5 },
+    // Bar 3-4: descending sinister line
+    { midi: N.C5,  beat: 4,    dur: 0.5 },
+    { midi: N.Bb4, beat: 4.5,  dur: 0.5 },
+    { midi: N.A4,  beat: 5,    dur: 0.5 },
+    { midi: N.G4,  beat: 5.5,  dur: 0.5 },
+    { midi: N.F4,  beat: 6,    dur: 0.5 },
+    { midi: N.E4,  beat: 6.5,  dur: 0.5 },
+    { midi: N.D4,  beat: 7,    dur: 1.0 },
+    // Bar 5-6: rise toward dominant (A7)
+    { midi: N.E4,  beat: 8,    dur: 0.5 },
+    { midi: N.G4,  beat: 8.5,  dur: 0.5 },
+    { midi: N.Bb4, beat: 9,    dur: 0.5 },
+    { midi: N.E5,  beat: 9.5,  dur: 0.5 },
+    { midi: N.D5,  beat: 10,   dur: 0.5 },
+    { midi: N.Bb4, beat: 10.5, dur: 0.5 },
+    { midi: N.A4,  beat: 11,   dur: 1.0 },
+    // Bar 7-8: cadence on D minor
+    { midi: N.A4,  beat: 12,   dur: 0.5 },
+    { midi: N.D5,  beat: 12.5, dur: 0.5 },
+    { midi: N.C5,  beat: 13,   dur: 0.5 },
+    { midi: N.Bb4, beat: 13.5, dur: 0.5 },
+    { midi: N.A4,  beat: 14,   dur: 0.5 },
+    { midi: N.F4,  beat: 14.5, dur: 0.5 },
+    { midi: N.D4,  beat: 15,   dur: 1.0 },
+  ],
+  bass: makeBass([
+    { root: N.D4 - 12, fifth: N.A4 - 12 }, { root: N.D4 - 12, fifth: N.A4 - 12 }, // Dm
+    { root: N.G3 - 12, fifth: N.D4 - 12 }, { root: N.G3 - 12, fifth: N.D4 - 12 }, // Gm
+    { root: N.A3 - 12, fifth: N.E4 - 12 }, { root: N.A3 - 12, fifth: N.E4 - 12 }, // A7
+    { root: N.A3 - 12, fifth: N.E4 - 12 }, { root: N.D4 - 12, fifth: N.A4 - 12 }, // A7 → Dm
+  ]),
+};
+
+const PHRASES: Phrase[] = [PHRASE_A, PHRASE_B, PHRASE_C];
 
 // Snare-like hi-hat clicks on off-beats for percussion feel.
 const SNARE_OFFBEATS: number[] = (() => {
@@ -280,17 +365,20 @@ export function startAmbient() {
   let alive = true;
   const c = ac();
   let nextTimer: number | null = null;
+  // Rotate through phrases so the same melody never plays two cycles in a row.
+  // Start from a random index so different sessions don't always open with A.
+  let phraseIdx = Math.floor(Math.random() * PHRASES.length);
 
   const playPhrase = () => {
     if (!alive) return;
-    // 132 BPM → quarter beat = 0.4545s; one "beat" in our notation = 1 quarter.
-    const beatSec = 0.4545;
-    const phraseBeats = 16;
-    const phraseSec = phraseBeats * beatSec;
+    const phrase = PHRASES[phraseIdx];
+    phraseIdx = (phraseIdx + 1) % PHRASES.length;
+    const beatSec = 60 / phrase.tempoBpm;
+    const phraseSec = phrase.beats * beatSec;
     const t0 = c.currentTime + 0.05;
 
-    // Melody — bright triangle wave through a gentle low-pass for a band-organ feel.
-    MELODY.forEach(n => {
+    // Melody — bright triangle wave through a gentle low-pass for band-organ feel.
+    phrase.melody.forEach(n => {
       scheduleNote(c, nHz(n.midi), t0 + n.beat * beatSec, n.dur * beatSec * 0.95,
         (n.gain ?? 0.060), 'triangle', 2200);
       // Subtle 5th overtone for richness
@@ -298,15 +386,16 @@ export function startAmbient() {
         (n.gain ?? 0.060) * 0.30, 'sine');
     });
     // Bass tuba — sawtooth filtered low.
-    BASS.forEach(n => {
+    phrase.bass.forEach(n => {
       scheduleNote(c, nHz(n.midi), t0 + n.beat * beatSec, n.dur * beatSec,
         n.gain ?? 0.08, 'sawtooth', 400);
     });
     // Snare on off-beats
     SNARE_OFFBEATS.forEach(b => scheduleSnareTick(c, t0 + b * beatSec, 0.022));
 
-    // Loop after phrase + 3.5s breath
-    const cycleMs = (phraseSec + 3.5) * 1000;
+    // Loop after phrase + variable 3-5s breath so the cadence isn't mechanical
+    const breathSec = 3 + Math.random() * 2;
+    const cycleMs = (phraseSec + breathSec) * 1000;
     nextTimer = window.setTimeout(playPhrase, cycleMs);
   };
   playPhrase();
