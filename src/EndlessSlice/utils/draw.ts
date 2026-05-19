@@ -355,28 +355,10 @@ export function drawPetBadge(d: DrawCtx, f: Flyer) {
  * Cream paper background to fit the receipt card.
  */
 export function drawSlainPetScene(ctx: CanvasRenderingContext2D, kind: FlyKind, visual: FlyerVisual, w: number, h: number) {
+  // Transparent canvas — let the parent receipt card show through so this
+  // reads as carnage scattered ON the paper, not a framed-off illustration.
   ctx.clearRect(0, 0, w, h);
-  // Cream paper background
-  ctx.fillStyle = '#fff5e8';
-  ctx.fillRect(0, 0, w, h);
-  // Subtle paper grain
-  ctx.save();
-  ctx.globalAlpha = 0.04;
-  ctx.fillStyle = '#000';
-  for (let i = 0; i < 80; i++) {
-    const px = Math.random() * w, py = Math.random() * h;
-    ctx.fillRect(px, py, 1, 1);
-  }
-  ctx.restore();
-  // Dotted frame
-  ctx.save();
-  ctx.strokeStyle = '#b81818';
-  ctx.lineWidth = 1.5;
-  ctx.setLineDash([4, 4]);
-  ctx.strokeRect(8, 8, w - 16, h - 16);
-  ctx.restore();
 
-  // Compute pet display radius
   const r = Math.min(w, h) * 0.32;
   const cx = w / 2;
   const cy = h * 0.55;
@@ -424,18 +406,16 @@ export function drawSlainPetScene(ctx: CanvasRenderingContext2D, kind: FlyKind, 
   drawX(cx + r * 0.55, cy - r * 0.45);
   ctx.restore();
 
-  // "R.I.P." stamp at bottom
+  // "R.I.P." stamp at bottom (slightly off-axis, like an ink stamp pressed
+  // into the paper). No frame box — just the inky text directly on the card.
   ctx.save();
-  ctx.translate(cx, h - 22);
-  ctx.rotate(-0.05);
-  ctx.font = `900 18px "Rye", serif`;
+  ctx.translate(cx, h - 18);
+  ctx.rotate(-0.06);
+  ctx.font = `900 22px "Rye", serif`;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.fillStyle = '#b81818';
+  ctx.fillStyle = 'rgba(184, 24, 24, 0.72)';
   ctx.fillText('R.I.P.', 0, 0);
-  ctx.strokeStyle = '#b81818';
-  ctx.lineWidth = 1.5;
-  ctx.strokeRect(-34, -12, 68, 24);
   ctx.restore();
 }
 
