@@ -90,10 +90,44 @@ export function sfxBomb() {
   noiseBurst(0.45, 0.20, 200);
 }
 
-/** Missed food (fell off bottom). Soft thud. */
+/** Missed food (fell off bottom). Sad trombone + soft thud — classic
+ *  circus failure cue ("wah-wah-waaaah"). */
 export function sfxMiss() {
-  tone(180, 0.12, 0.10, 'sine');
-  tone(120, 0.16, 0.06, 'sine', -8);
+  try {
+    const c = ac();
+    const now = c.currentTime;
+    // Thud (impact on the floor)
+    tone(80, 0.10, 0.14, 'sawtooth');
+    tone(58, 0.12, 0.08, 'sine');
+
+    // Sad trombone slide: G4 → C4 → A3, exponential glide.
+    const o = c.createOscillator();
+    o.type = 'sawtooth';
+    o.frequency.setValueAtTime(392, now + 0.06);
+    o.frequency.exponentialRampToValueAtTime(262, now + 0.28);
+    o.frequency.exponentialRampToValueAtTime(220, now + 0.46);
+    // Subtle vibrato via LFO
+    const lfo = c.createOscillator();
+    lfo.type = 'sine';
+    lfo.frequency.value = 6;
+    const lfoGain = c.createGain();
+    lfoGain.gain.value = 6;
+    lfo.connect(lfoGain).connect(o.frequency);
+    // Tone shaper
+    const lp = c.createBiquadFilter();
+    lp.type = 'lowpass';
+    lp.frequency.value = 1400;
+    const g = c.createGain();
+    g.gain.setValueAtTime(0.0001, now + 0.06);
+    g.gain.linearRampToValueAtTime(0.15, now + 0.10);
+    g.gain.setValueAtTime(0.13, now + 0.38);
+    g.gain.exponentialRampToValueAtTime(0.0001, now + 0.58);
+    o.connect(lp).connect(g).connect(c.destination);
+    o.start(now + 0.06);
+    o.stop(now + 0.62);
+    lfo.start(now + 0.06);
+    lfo.stop(now + 0.62);
+  } catch { /* ignore */ }
 }
 
 /** Run-end fanfare. */

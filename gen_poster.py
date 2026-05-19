@@ -19,6 +19,7 @@ random.seed(23)
 ROOT = os.path.dirname(os.path.abspath(__file__))
 OUT_PATH = os.path.join(ROOT, "public/poster.png")
 RYE_FONT = os.path.join(ROOT, "fonts/Rye-Regular.ttf")
+PLAYFAIR_ITAL = os.path.join(ROOT, "fonts/PlayfairDisplay-BlackItalic.ttf")
 os.makedirs(os.path.dirname(OUT_PATH), exist_ok=True)
 W, H = 1024, 1024
 
@@ -53,6 +54,12 @@ def find_font(paths, size):
 def rye(size):
     if os.path.exists(RYE_FONT):
         return ImageFont.truetype(RYE_FONT, size)
+    return find_font(FONT_ITALIC, size)
+
+
+def playfair(size):
+    if os.path.exists(PLAYFAIR_ITAL):
+        return ImageFont.truetype(PLAYFAIR_ITAL, size)
     return find_font(FONT_ITALIC, size)
 
 
@@ -198,49 +205,95 @@ def debossed_text(img, text, x, y, font, fill=CREAM, shadow=BLOOD_DK, offset=4):
     img.alpha_composite(layer)
 
 
+def add_spotlights(img):
+    """Two warm soft pools — matches the in-game drawSpotlights look."""
+    layer = Image.new("RGBA", img.size, (0, 0, 0, 0))
+    w, h = img.size
+    # Main warm pool
+    g1 = radial_glow(w, h, w * 0.55, h * 0.30, max(w, h) * 0.55, (255, 220, 150), 55)
+    layer = Image.alpha_composite(layer, g1)
+    # Secondary pink pool
+    g2 = radial_glow(w, h, w * 0.30, h * 0.62, max(w, h) * 0.42, (255, 170, 210), 32)
+    layer = Image.alpha_composite(layer, g2)
+    # Composite additively-ish (alpha blend works fine for soft glows)
+    img.alpha_composite(layer)
+
+
+def radial_glow(w, h, cx, cy, radius, color, alpha_peak):
+    img = Image.new("RGBA", (w, h), (0, 0, 0, 0))
+    px = img.load()
+    r2 = radius * radius
+    for y in range(h):
+        for x in range(w):
+            d = (x - cx) ** 2 + (y - cy) ** 2
+            if d >= r2:
+                continue
+            k = 1 - (d / r2)
+            a = int(alpha_peak * (k ** 2))
+            if a <= 0:
+                continue
+            px[x, y] = (color[0], color[1], color[2], a)
+    return img
+
+
+def drop_shadow(img, cx, cy, rx, ry, alpha=110):
+    """Soft blurred ellipse shadow, drawn at (cx, cy) with given radii."""
+    pad = 30
+    w = int(rx * 2 + pad * 2)
+    h = int(ry * 2 + pad * 2)
+    layer = Image.new("RGBA", (w, h), (0, 0, 0, 0))
+    d = ImageDraw.Draw(layer)
+    d.ellipse([pad, pad, pad + rx * 2, pad + ry * 2], fill=(0, 0, 0, alpha))
+    layer = layer.filter(ImageFilter.GaussianBlur(radius=14))
+    img.alpha_composite(layer, (int(cx - w // 2), int(cy - h // 2)))
+
+
 def main():
     bg = tent_background()
-    add_valance(bg)
+    add_spotlights(bg)
 
-    # ── Pig sliced — single centered hero ──
-    cx, cy = W // 2, 740
-    left = pig_half(150, -20, "l")
-    right = pig_half(150, 18, "r")
-    bg.alpha_composite(left, (cx - left.width // 2 - 80, cy - left.height // 2 - 30))
-    bg.alpha_composite(right, (cx - right.width // 2 + 80, cy - right.height // 2 + 30))
-    blood_splatter(bg, cx, cy, 30, (232, 80, 106))
+    # Pig sliced — single centered hero
+    cx, cy = W // 2, 720
+    # Shadow on the tent below the hero pig
+    drop_shadow(bg, cx, cy + 130, 200, 36, alpha=150)
+
+    left = pig_half(160, -20, "l")
+    right = pig_half(160, 18, "r")
+    bg.alpha_composite(left, (cx - left.width // 2 - 90, cy - left.height // 2 - 30))
+    bg.alpha_composite(right, (cx - right.width // 2 + 90, cy - right.height // 2 + 30))
+    blood_splatter(bg, cx, cy, 32, (232, 80, 106))
 
     # Swipe trail crossing through the kill
-    swipe_trail(bg, [(60, 580), (320, 700), (cx, 720), (760, 680), (970, 560)])
+    swipe_trail(bg, [(60, 560), (300, 690), (cx - 30, 720), (780, 680), (970, 540)])
 
-    # ── Title block ──
-    # "THE GREATEST" subtitle
-    sub_font = find_font(FONT_ITALIC, 38)
+    # ── Title block — fonts match the in-game canvas exactly ──
+    # "THE GREATEST" subtitle — Playfair Display Black Italic
+    sub_font = playfair(40)
     sub_text = "— THE GREATEST —"
     bbox = ImageDraw.Draw(bg).textbbox((0, 0), sub_text, font=sub_font)
     tw = bbox[2] - bbox[0]
-    debossed_text(bg, sub_text, (W - tw) // 2, 150, sub_font, fill=CREAM, shadow=BLOOD_DK, offset=2)
+    debossed_text(bg, sub_text, (W - tw) // 2, 120, sub_font, fill=CREAM, shadow=BLOOD_DK, offset=2)
 
-    # FARM
-    farm_font = rye(168)
+    # FARM — Rye slab serif (matches in-game)
+    farm_font = rye(176)
     farm_text = "FARM"
     bbox = ImageDraw.Draw(bg).textbbox((0, 0), farm_text, font=farm_font)
     fw = bbox[2] - bbox[0]
-    debossed_text(bg, farm_text, (W - fw) // 2, 200, farm_font, fill=CREAM, shadow=BLOOD_DK, offset=5)
+    debossed_text(bg, farm_text, (W - fw) // 2, 175, farm_font, fill=CREAM, shadow=BLOOD_DK, offset=5)
 
-    # "to"
-    to_font = find_font(FONT_ITALIC, 56)
+    # "to" — Playfair Display Black Italic
+    to_font = playfair(64)
     to_text = "to"
     bbox = ImageDraw.Draw(bg).textbbox((0, 0), to_text, font=to_font)
     tow = bbox[2] - bbox[0]
-    debossed_text(bg, to_text, (W - tow) // 2, 380, to_font, fill=CREAM, shadow=BLOOD_DK, offset=2)
+    debossed_text(bg, to_text, (W - tow) // 2, 358, to_font, fill=CREAM, shadow=BLOOD_DK, offset=3)
 
-    # TABLE
-    table_font = rye(168)
+    # TABLE — Rye
+    table_font = rye(176)
     table_text = "TABLE"
     bbox = ImageDraw.Draw(bg).textbbox((0, 0), table_text, font=table_font)
     tabw = bbox[2] - bbox[0]
-    debossed_text(bg, table_text, (W - tabw) // 2, 440, table_font, fill=CREAM, shadow=BLOOD_DK, offset=5)
+    debossed_text(bg, table_text, (W - tabw) // 2, 420, table_font, fill=CREAM, shadow=BLOOD_DK, offset=5)
 
     # AlterU watermark
     d = ImageDraw.Draw(bg, "RGBA")

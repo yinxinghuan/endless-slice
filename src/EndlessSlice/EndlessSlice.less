@@ -174,6 +174,34 @@
     font-size: 128px;
   }
 }
+// MISS banner — bigger, redder than the tier callouts; sits a bit lower so
+// it doesn't fight a combo MULTI tier on the same frame.
+.es-miss-banner {
+  position: absolute;
+  top: 48%;
+  left: 0; right: 0;
+  text-align: center;
+  pointer-events: none;
+  z-index: 7;
+  font-family: 'Rye', 'Playfair Display', serif;
+  font-weight: 900;
+  font-size: 84px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: @blood;
+  -webkit-text-stroke: 3px @cream;
+  filter: drop-shadow(0 4px 0 #2a0606)
+          drop-shadow(0 8px 22px rgba(0, 0, 0, 0.7));
+  animation: es-miss-banner 1.2s cubic-bezier(.34,1.56,.64,1) forwards;
+}
+@keyframes es-miss-banner {
+  0%   { transform: scale(0.4) rotate(-5deg); opacity: 0; }
+  16%  { transform: scale(1.18) rotate(3deg); opacity: 1; }
+  28%  { transform: scale(1.0)  rotate(0deg); opacity: 1; }
+  78%  { transform: scale(1.0)  rotate(0deg); opacity: 1; }
+  100% { transform: scale(1.14) rotate(-2deg); opacity: 0; }
+}
+
 @keyframes es-tier-banner {
   0%   { transform: scale(0.4) rotate(-6deg);  opacity: 0; }
   18%  { transform: scale(1.18) rotate(2deg);  opacity: 1; }

@@ -74,6 +74,7 @@ export function useEndlessSlice() {
   const [lives, setLives] = useState(LIVES);
   const [comboInSwipe, setComboInSwipe] = useState(0);
   const [tierLabel, setTierLabel] = useState<string>('');
+  const [missLabel, setMissLabel] = useState<string>('');
   const [hasInteracted, setHasInteracted] = useState<boolean>(false);
   const [best, setBest] = useState<number>(() => {
     const v = typeof localStorage !== 'undefined' ? localStorage.getItem(BEST_KEY) : null;
@@ -127,6 +128,7 @@ export function useEndlessSlice() {
     setLives(LIVES);
     setComboInSwipe(0);
     setHasInteracted(false);
+    setMissLabel('');
     setScreen('playing');
     screenRef.current = 'playing';
     unlockAudio();
@@ -511,7 +513,10 @@ export function useEndlessSlice() {
                   sfxMiss();
                   flashRef.current = { at: now, color: '#ff4a4a' };
                   if (livesRef.current <= 0) {
+                    setMissLabel('OUT!');
                     endRun();
+                  } else {
+                    setMissLabel(livesRef.current === 1 ? 'LAST CHANCE!' : `MISS  ${livesRef.current} LEFT`);
                   }
                 }
               }
@@ -609,9 +614,16 @@ export function useEndlessSlice() {
     return () => clearTimeout(id);
   }, [tierLabel]);
 
+  // Clear miss banner after a longer beat (drama)
+  useEffect(() => {
+    if (!missLabel) return;
+    const id = setTimeout(() => setMissLabel(''), 1200);
+    return () => clearTimeout(id);
+  }, [missLabel]);
+
   return {
     canvasRef,
-    screen, score, lives, comboInSwipe, tierLabel, best, stats, hasInteracted,
+    screen, score, lives, comboInSwipe, tierLabel, missLabel, best, stats, hasInteracted,
     start,
     onPointerDown, onPointerMove, onPointerUp,
   };

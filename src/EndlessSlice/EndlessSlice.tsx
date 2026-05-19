@@ -10,7 +10,7 @@ import './EndlessSlice.less';
 export default function EndlessSlice() {
   const {
     canvasRef,
-    screen, score, lives, comboInSwipe, tierLabel, best, stats, hasInteracted,
+    screen, score, lives, comboInSwipe, tierLabel, missLabel, best, stats, hasInteracted,
     start,
     onPointerDown, onPointerMove, onPointerUp,
   } = useEndlessSlice();
@@ -84,6 +84,9 @@ export default function EndlessSlice() {
             <div key={tierLabel + score} className={`es-tier es-tier--${tierLabel.toLowerCase()}`}>
               {tierLabel}
             </div>
+          )}
+          {missLabel && (
+            <div key={missLabel + lives} className="es-miss-banner">{missLabel}</div>
           )}
           {showTutorial && <TutorialOverlay />}
         </>

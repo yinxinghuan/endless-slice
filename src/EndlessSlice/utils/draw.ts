@@ -111,16 +111,20 @@ export function drawObjectShadows(d: DrawCtx, flyers: Flyer[], halves: Half[], l
     const dx = x - L.cx;
     const dy = y - L.cy;
     const len = Math.hypot(dx, dy) || 1;
-    const push = 22 * scale;
-    const sx = x + (dx / len) * push;
-    const sy = y + (dy / len) * push + 16 * scale;
-    const g = ctx.createRadialGradient(sx, sy, 0, sx, sy, r * 1.5);
+    // Big push so the shadow clearly separates from the object (depth feel).
+    // Lateral offset follows the light vector; vertical extra drop sells the
+    // sense the object floats above the tent.
+    const push = 70 * scale;
+    const sx = x + (dx / len) * push * 0.5;
+    const sy = y + (dy / len) * push * 0.5 + 50 * scale;
+    const g = ctx.createRadialGradient(sx, sy, 0, sx, sy, r * 1.8);
     g.addColorStop(0,    `rgba(0,0,0,${alpha})`);
-    g.addColorStop(0.55, `rgba(0,0,0,${alpha * 0.35})`);
+    g.addColorStop(0.55, `rgba(0,0,0,${alpha * 0.4})`);
     g.addColorStop(1,    'rgba(0,0,0,0)');
     ctx.fillStyle = g;
     ctx.beginPath();
-    ctx.ellipse(sx, sy, r * 1.25, r * 0.6, 0, 0, Math.PI * 2);
+    // Flatter ellipse — typical floor cast shadow shape.
+    ctx.ellipse(sx, sy, r * 1.4, r * 0.55, 0, 0, Math.PI * 2);
     ctx.fill();
   };
 
