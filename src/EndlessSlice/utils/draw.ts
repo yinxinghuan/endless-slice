@@ -232,77 +232,271 @@ export function drawFlyer(d: DrawCtx, f: Flyer) {
 }
 
 /**
- * Big "DO NOT SLICE" badge floating above every pet. Drawn in world space
- * (NOT inside the body's rotation transform) so it stays upright while the
- * pet tumbles. Pulsing pink heart + cream disc + caption.
+ * Strong "DO NOT SLICE" signal layered around every pet. Drawn in world
+ * space (NOT inside the body's rotation transform) so all elements stay
+ * upright while the pet tumbles.
+ *
+ *   1. Thick pulsing pink halo wrapping the body (1.3× radius outer)
+ *   2. Cream "PET" banner ribbon across the chest with the pet's name
+ *   3. Big floating heart disc with crossed-out cleaver, sitting above
+ *
+ * Together this is impossible to miss even at high spawn rate.
  */
 export function drawPetBadge(d: DrawCtx, f: Flyer) {
   const { ctx, scale } = d;
   const r = f.visual.radius * scale;
   const t = performance.now();
-  const pulse = 1 + 0.18 * Math.sin(t * 0.006);
-  const bx = f.x;
-  const by = f.y - r * 1.30;
-  const discR = r * 0.34 * pulse;
+  const pulse = 0.5 + 0.5 * Math.sin(t * 0.006);
 
-  // Glow ring
+  // ── 1. Body halo ──
   ctx.save();
   ctx.globalCompositeOperation = 'lighter';
-  for (let i = 0; i < 4; i++) {
-    const rr = discR * (1.25 + i * 0.18);
-    ctx.fillStyle = `rgba(255, 90, 150, ${0.18 - i * 0.04})`;
+  const haloRMax = r * (1.45 + pulse * 0.10);
+  // Outer soft pink glow
+  for (let i = 0; i < 6; i++) {
+    const rr = haloRMax * (1 + i * 0.05);
+    ctx.fillStyle = `rgba(255, 110, 170, ${0.10 - i * 0.014})`;
     ctx.beginPath();
-    ctx.arc(bx, by, rr, 0, Math.PI * 2);
+    ctx.arc(f.x, f.y, rr, 0, Math.PI * 2);
     ctx.fill();
   }
   ctx.restore();
-
-  // Cream disc
-  ctx.fillStyle = '#fff5e8';
+  // Solid thick pink ring (the "selected pet" outline)
+  ctx.strokeStyle = `rgba(255, 100, 160, ${0.55 + pulse * 0.35})`;
+  ctx.lineWidth = (6 + pulse * 3) * scale;
   ctx.beginPath();
-  ctx.arc(bx, by, discR, 0, Math.PI * 2);
-  ctx.fill();
-  // Pink outline
-  ctx.strokeStyle = '#ff4a8a';
-  ctx.lineWidth = 3 * scale;
+  ctx.arc(f.x, f.y, r * 1.18, 0, Math.PI * 2);
   ctx.stroke();
-  // Inner gold outline
-  ctx.strokeStyle = '#ffd24a';
-  ctx.lineWidth = 1.5 * scale;
+  // Cream inner highlight ring
+  ctx.strokeStyle = `rgba(255, 245, 232, ${0.7})`;
+  ctx.lineWidth = 1.6 * scale;
   ctx.beginPath();
-  ctx.arc(bx, by, discR - 4 * scale, 0, Math.PI * 2);
+  ctx.arc(f.x, f.y, r * 1.12, 0, Math.PI * 2);
   ctx.stroke();
 
-  // Heart icon inside
-  const heartR = discR * 0.58;
+  // ── 2. "PET" ribbon banner across the body ──
+  const banY = f.y;
+  const banH = r * 0.40;
+  const banW = r * 1.85;
+  ctx.save();
+  ctx.translate(f.x, banY);
+  // Body fill
   ctx.fillStyle = '#ff3a7a';
-  drawHeartPath(ctx, bx, by + heartR * 0.08, heartR);
+  roundRect(ctx, -banW / 2, -banH / 2, banW, banH, banH * 0.18);
   ctx.fill();
-  // Heart highlight
-  ctx.fillStyle = 'rgba(255,255,255,0.5)';
-  ctx.beginPath();
-  ctx.ellipse(bx - heartR * 0.28, by - heartR * 0.18, heartR * 0.18, heartR * 0.12, -0.4, 0, Math.PI * 2);
+  // Cream inner band
+  ctx.fillStyle = '#fff5e8';
+  roundRect(ctx, -banW / 2 + 3 * scale, -banH / 2 + 3 * scale, banW - 6 * scale, banH - 6 * scale, banH * 0.12);
   ctx.fill();
-
-  // "PET" caption directly below the disc
-  ctx.font = `900 ${r * 0.20}px "Rye", "Playfair Display", serif`;
+  // "PET" text
+  ctx.font = `900 ${banH * 0.62}px "Rye", "Playfair Display", serif`;
   ctx.textAlign = 'center';
-  ctx.textBaseline = 'top';
-  // Cream chip background
-  const capW = r * 0.66;
-  const capH = r * 0.28;
-  const capX = bx - capW / 2;
-  const capY = by + discR + 2 * scale;
+  ctx.textBaseline = 'middle';
+  ctx.fillStyle = '#b81818';
+  ctx.fillText('PET', 0, 0);
+  // Ribbon end notches
+  ctx.fillStyle = '#ff3a7a';
+  ctx.beginPath();
+  ctx.moveTo(-banW / 2, -banH / 2);
+  ctx.lineTo(-banW / 2 - banH * 0.4, 0);
+  ctx.lineTo(-banW / 2, banH / 2);
+  ctx.closePath();
+  ctx.fill();
+  ctx.beginPath();
+  ctx.moveTo(banW / 2, -banH / 2);
+  ctx.lineTo(banW / 2 + banH * 0.4, 0);
+  ctx.lineTo(banW / 2, banH / 2);
+  ctx.closePath();
+  ctx.fill();
+  ctx.restore();
+
+  // ── 3. Heart disc with cleaver-slash above the body ──
+  const discCx = f.x;
+  const discCy = f.y - r * 1.35;
+  const discR = r * 0.40 * (1 + pulse * 0.10);
+  // Cream disc + double-color outline
   ctx.fillStyle = '#fff5e8';
-  ctx.strokeStyle = '#ff4a8a';
-  ctx.lineWidth = 2 * scale;
-  roundRect(ctx, capX, capY, capW, capH, 4 * scale);
+  ctx.beginPath();
+  ctx.arc(discCx, discCy, discR, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = '#ff3a7a';
+  ctx.lineWidth = 4 * scale;
+  ctx.stroke();
+  ctx.strokeStyle = '#ffd24a';
+  ctx.lineWidth = 1.6 * scale;
+  ctx.beginPath();
+  ctx.arc(discCx, discCy, discR - 5 * scale, 0, Math.PI * 2);
+  ctx.stroke();
+  // Heart inside
+  const hr = discR * 0.55;
+  ctx.fillStyle = '#ff2a72';
+  drawHeartPath(ctx, discCx, discCy + hr * 0.10, hr);
+  ctx.fill();
+  // Heart shine
+  ctx.fillStyle = 'rgba(255,255,255,0.55)';
+  ctx.beginPath();
+  ctx.ellipse(discCx - hr * 0.28, discCy - hr * 0.20, hr * 0.20, hr * 0.13, -0.4, 0, Math.PI * 2);
+  ctx.fill();
+  // Diagonal cleaver-slash "NO" through the heart
+  ctx.save();
+  ctx.translate(discCx, discCy);
+  ctx.rotate(-Math.PI / 4);
+  ctx.fillStyle = '#b81818';
+  ctx.fillRect(-discR * 1.05, -discR * 0.13, discR * 2.1, discR * 0.26);
+  ctx.fillStyle = '#fff5e8';
+  ctx.fillRect(-discR * 1.05, -discR * 0.06, discR * 2.1, discR * 0.04);
+  ctx.restore();
+}
+
+/**
+ * Renders a static memorial scene of the slain pet inside an arbitrary
+ * canvas (used on the end screen). The two halves sit slightly tilted with
+ * a thick cut face + blood splatter around them + a small "X" eye motif.
+ * Cream paper background to fit the receipt card.
+ */
+export function drawSlainPetScene(ctx: CanvasRenderingContext2D, kind: FlyKind, visual: FlyerVisual, w: number, h: number) {
+  ctx.clearRect(0, 0, w, h);
+  // Cream paper background
+  ctx.fillStyle = '#fff5e8';
+  ctx.fillRect(0, 0, w, h);
+  // Subtle paper grain
+  ctx.save();
+  ctx.globalAlpha = 0.04;
+  ctx.fillStyle = '#000';
+  for (let i = 0; i < 80; i++) {
+    const px = Math.random() * w, py = Math.random() * h;
+    ctx.fillRect(px, py, 1, 1);
+  }
+  ctx.restore();
+  // Dotted frame
+  ctx.save();
+  ctx.strokeStyle = '#b81818';
+  ctx.lineWidth = 1.5;
+  ctx.setLineDash([4, 4]);
+  ctx.strokeRect(8, 8, w - 16, h - 16);
+  ctx.restore();
+
+  // Compute pet display radius
+  const r = Math.min(w, h) * 0.32;
+  const cx = w / 2;
+  const cy = h * 0.55;
+
+  // Blood splatter behind / around
+  const splatColor = visual.flesh;
+  ctx.save();
+  for (let i = 0; i < 26; i++) {
+    const a = Math.random() * Math.PI * 2;
+    const dist = (0.4 + Math.random() * 0.9) * r * 1.4;
+    const px = cx + Math.cos(a) * dist;
+    const py = cy + Math.sin(a) * dist * 0.7;
+    const dropR = (3 + Math.random() * 8) * (Math.min(w, h) / 220);
+    ctx.fillStyle = splatColor;
+    ctx.globalAlpha = 0.5 + Math.random() * 0.4;
+    ctx.beginPath();
+    ctx.arc(px, py, dropR, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+  ctx.restore();
+
+  // Build two synthetic halves
+  const rad = (visual.radius);
+  const visScale = r / rad;
+
+  // Half A — flung up-left
+  drawMemorialHalf(ctx, kind, visual, cx - r * 0.55, cy - r * 0.10, visScale, -0.22, +1, w);
+  // Half B — flung down-right
+  drawMemorialHalf(ctx, kind, visual, cx + r * 0.55, cy + r * 0.10, visScale, 0.22, -1, w);
+
+  // X-eyes mark above (universal "kaput" sign)
+  ctx.save();
+  ctx.strokeStyle = '#b81818';
+  ctx.lineWidth = 4;
+  ctx.lineCap = 'round';
+  const exR = r * 0.10;
+  const drawX = (ex: number, ey: number) => {
+    ctx.beginPath();
+    ctx.moveTo(ex - exR, ey - exR); ctx.lineTo(ex + exR, ey + exR);
+    ctx.moveTo(ex - exR, ey + exR); ctx.lineTo(ex + exR, ey - exR);
+    ctx.stroke();
+  };
+  drawX(cx - r * 0.55, cy - r * 0.55);
+  drawX(cx + r * 0.55, cy - r * 0.45);
+  ctx.restore();
+
+  // "R.I.P." stamp at bottom
+  ctx.save();
+  ctx.translate(cx, h - 22);
+  ctx.rotate(-0.05);
+  ctx.font = `900 18px "Rye", serif`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillStyle = '#b81818';
+  ctx.fillText('R.I.P.', 0, 0);
+  ctx.strokeStyle = '#b81818';
+  ctx.lineWidth = 1.5;
+  ctx.strokeRect(-34, -12, 68, 24);
+  ctx.restore();
+}
+
+function drawMemorialHalf(ctx: CanvasRenderingContext2D, kind: FlyKind, visual: FlyerVisual, x: number, y: number, visScale: number, rot: number, side: 1 | -1, _w: number) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(rot);
+  ctx.scale(visScale, visScale);
+  const r = visual.radius;
+
+  // Clip to one half along x-axis (so cut shows on the inside edge facing the gap)
+  ctx.save();
+  ctx.beginPath();
+  const big = r * 4;
+  if (side === 1) ctx.rect(-big, -big, big * 2, big);   // upper-half clip
+  else            ctx.rect(-big, 0, big * 2, big);      // lower-half clip
+  ctx.clip();
+  drawAnimal(ctx, kind, r, visual);
+  ctx.restore();
+
+  // Cut-face: thick meat cross-section ellipse
+  const sign = side === 1 ? -1 : 1;
+  const rx = r * 1.05;
+  const ry = r * 0.36;
+  // Outer fat
+  ctx.fillStyle = visual.fat;
+  ctx.beginPath();
+  if (sign === -1) ctx.ellipse(0, 0, rx, ry, 0, Math.PI, Math.PI * 2);
+  else             ctx.ellipse(0, 0, rx, ry, 0, 0, Math.PI);
+  ctx.closePath();
+  ctx.fill();
+  // Inner flesh gradient
+  const fleshGrad = sign === -1
+    ? ctx.createLinearGradient(0, -ry * 0.9, 0, 0)
+    : ctx.createLinearGradient(0, 0, 0, ry * 0.9);
+  fleshGrad.addColorStop(0, lighten(visual.flesh, 0.18));
+  fleshGrad.addColorStop(0.55, visual.flesh);
+  fleshGrad.addColorStop(1, darken(visual.flesh, 0.18));
+  ctx.fillStyle = fleshGrad;
+  const fRx = rx * 0.86, fRy = ry * 0.82;
+  ctx.beginPath();
+  if (sign === -1) ctx.ellipse(0, 0, fRx, fRy, 0, Math.PI, Math.PI * 2);
+  else             ctx.ellipse(0, 0, fRx, fRy, 0, 0, Math.PI);
+  ctx.closePath();
+  ctx.fill();
+  // Bone
+  ctx.fillStyle = visual.bone;
+  ctx.strokeStyle = darken(visual.flesh, 0.4);
+  ctx.lineWidth = 1.6;
+  ctx.beginPath();
+  ctx.ellipse(0, sign * fRy * 0.5, fRx * 0.18, fRy * 0.34, 0, 0, Math.PI * 2);
   ctx.fill();
   ctx.stroke();
-  ctx.fillStyle = '#ff3a7a';
-  ctx.fillText('PET', bx, capY + capH * 0.18);
-  ctx.textAlign = 'left';
-  ctx.textBaseline = 'alphabetic';
+  // Cut line
+  ctx.strokeStyle = 'rgba(0,0,0,0.55)';
+  ctx.lineWidth = 1.6;
+  ctx.beginPath();
+  ctx.moveTo(-rx, 0); ctx.lineTo(rx, 0);
+  ctx.stroke();
+
+  ctx.restore();
 }
 
 function drawHeartPath(ctx: CanvasRenderingContext2D, x: number, y: number, r: number) {

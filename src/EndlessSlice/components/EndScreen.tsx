@@ -1,5 +1,8 @@
+import { useEffect, useRef } from 'react';
 import { t } from '../i18n';
 import type { FlyKind, Stats } from '../types';
+import { VISUALS } from '../utils/food';
+import { drawSlainPetScene } from '../utils/draw';
 
 interface Props {
   stats: Stats;
@@ -19,13 +22,32 @@ function petLabel(k: FlyKind | null): string {
   return k ? (PET_NAME[k] || 'PET') : 'PET';
 }
 
+/** A small canvas that paints a memorial scene of the slain pet. */
+function SlainPetCanvas({ kind }: { kind: FlyKind }) {
+  const ref = useRef<HTMLCanvasElement>(null);
+  useEffect(() => {
+    const canvas = ref.current;
+    if (!canvas) return;
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const cssW = canvas.clientWidth;
+    const cssH = canvas.clientHeight;
+    canvas.width = Math.floor(cssW * dpr);
+    canvas.height = Math.floor(cssH * dpr);
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    ctx.scale(dpr, dpr);
+    drawSlainPetScene(ctx, kind, VISUALS[kind], cssW, cssH);
+  }, [kind]);
+  return <canvas ref={ref} className="es-pet-canvas" />;
+}
+
 export function EndScreen({ stats, best, onAgain, onOpenLeaderboard }: Props) {
-  const sliced = !!stats.killedPet;
+  const killed = stats.killedPet;
   return (
     <div className="es-overlay es-overlay--end">
       <div className="es-overlay__inner">
         <div className="es-stamp-bar">
-          {sliced ? (
+          {killed ? (
             <>
               <span>OH NO</span>
               <span>·</span>
@@ -40,10 +62,11 @@ export function EndScreen({ stats, best, onAgain, onOpenLeaderboard }: Props) {
           )}
         </div>
 
-        {sliced && (
+        {killed && (
           <div className="es-pet-rip">
             <div className="es-pet-rip__big">YOU SLICED</div>
-            <div className="es-pet-rip__pet">THE {petLabel(stats.killedPet)}</div>
+            <SlainPetCanvas kind={killed} />
+            <div className="es-pet-rip__pet">THE {petLabel(killed)}</div>
             <div className="es-pet-rip__small">— pets are not on the menu —</div>
           </div>
         )}
