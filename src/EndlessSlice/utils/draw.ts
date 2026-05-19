@@ -75,15 +75,7 @@ export function drawFlyer(d: DrawCtx, f: Flyer) {
   ctx.save();
   ctx.translate(f.x, f.y);
   ctx.rotate(f.rot);
-
-  // Drop shadow under body
-  ctx.fillStyle = 'rgba(0,0,0,0.35)';
-  ctx.beginPath();
-  ctx.ellipse(0, r * 0.50, r * 1.05, r * 0.30, 0, 0, Math.PI * 2);
-  ctx.fill();
-
   drawAnimal(ctx, f.kind, r, f.visual);
-
   ctx.restore();
 }
 

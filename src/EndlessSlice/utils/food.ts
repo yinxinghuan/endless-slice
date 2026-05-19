@@ -4,7 +4,7 @@ import type { FlyKind, FlyerVisual } from '../types';
 // Full-body animals have horizontal extents up to ~1.4×r in width and ~r in height.
 export const VISUALS: Record<FlyKind, FlyerVisual> = {
   chicken: {
-    radius: 78,
+    radius: 62,
     body:   '#ffe884',
     accent: '#ff3a1a',
     dark:   '#e0721a',
@@ -14,7 +14,7 @@ export const VISUALS: Record<FlyKind, FlyerVisual> = {
     flash:  '#ffe884',
   },
   duck: {
-    radius: 84,
+    radius: 76,
     body:   '#fff080',
     accent: '#ff8025',
     dark:   '#b85008',
@@ -24,7 +24,7 @@ export const VISUALS: Record<FlyKind, FlyerVisual> = {
     flash:  '#ffd24a',
   },
   pig: {
-    radius: 104,
+    radius: 108,
     body:   '#ffc7c7',
     accent: '#ff9aa6',
     dark:   '#a06070',
@@ -34,7 +34,7 @@ export const VISUALS: Record<FlyKind, FlyerVisual> = {
     flash:  '#ff7090',
   },
   sheep: {
-    radius: 112,
+    radius: 132,
     body:   '#fbf3df',
     accent: '#1a1a1a',
     dark:   '#3a2a1a',
@@ -44,7 +44,7 @@ export const VISUALS: Record<FlyKind, FlyerVisual> = {
     flash:  '#fff0e0',
   },
   cow: {
-    radius: 132,
+    radius: 180,
     body:   '#fafafa',
     accent: '#1d1d1f',
     dark:   '#a07a4a',
@@ -54,7 +54,7 @@ export const VISUALS: Record<FlyKind, FlyerVisual> = {
     flash:  '#ff6a6a',
   },
   wagyu: {
-    radius: 72,
+    radius: 60,
     body:   '#b8253a',
     accent: '#ffd24a',
     dark:   '#fff0f0',
@@ -82,10 +82,11 @@ export function isGolden(kind: FlyKind): boolean { return kind === 'wagyu'; }
 
 export function baseScoreFor(kind: FlyKind): number {
   const r = VISUALS[kind].radius;
-  if (r >= 120) return 20;  // cow — biggest, highest base
-  if (r >= 100) return 15;  // pig / sheep
-  if (r <= 80)  return 10;  // chicken (small + nimble)
-  return 12;                // duck
+  if (r >= 160) return 25;  // cow — biggest, highest base
+  if (r >= 120) return 18;  // sheep
+  if (r >= 100) return 14;  // pig
+  if (r <= 70)  return 8;   // chicken / small
+  return 11;                // duck
 }
 
 export function pickRegular(rng: () => number): FlyKind {
@@ -108,7 +109,8 @@ export function pickRegular(rng: () => number): FlyKind {
 
 export function difficulty(t: number) {
   const spawnInterval = Math.max(0.42, 1.05 - t * 0.008);
-  const bombRate = Math.min(0.20, t * 0.0025);
+  // Bomb appears within first ~5s and settles to ~18% mid-game.
+  const bombRate = Math.min(0.18, 0.07 + t * 0.003);
   const goldenRate = Math.min(0.07, 0.02 + t * 0.0006);
   const waveMin = 1;
   const waveMax = Math.min(4, 1 + Math.floor(t / 16));
