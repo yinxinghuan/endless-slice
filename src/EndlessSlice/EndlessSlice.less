@@ -92,23 +92,18 @@
       transparent 4px),
     linear-gradient(180deg, @cream 0%, @cream-2 100%);
   border: 2px solid @blood;
-  outline: 1.5px solid @gold;
-  outline-offset: 1.5px;
   box-shadow: 0 5px 14px rgba(0, 0, 0, 0.55);
   gap: 4px;
   // Slight tilt — ticket pinned to the board
   transform: rotate(-2.5deg);
   transform-origin: 70% 50%;
-  // Marquee bulbs along the top edge
+  // Dashed perforation tear-line at the bottom right area
   &::before {
     content: '';
     position: absolute;
-    top: 3px;
-    left: 8px;
-    right: 8px;
-    height: 4px;
-    background: radial-gradient(circle, @gold 0 1.5px, transparent 1.8px) 0 0 / 7px 4px repeat-x;
-    opacity: 0.95;
+    inset: 4px 4px auto 4px;
+    height: 0;
+    border-top: 1px dashed rgba(@blood, 0.55);
     pointer-events: none;
   }
 }
@@ -117,19 +112,17 @@
 .es-lives-placard__notch {
   position: absolute;
   top: 50%;
-  width: 14px;
-  height: 14px;
-  background: #2a0808;          // sits over the red tent, blends with shadow
+  width: 12px;
+  height: 12px;
+  background: #2a0808;
   border: 2px solid @blood;
-  outline: 1.5px solid @gold;
-  outline-offset: 1.5px;
   border-radius: 50%;
   transform: translateY(-50%);
   pointer-events: none;
   z-index: 2;
 }
-.es-lives-placard__notch--l { left: -7px; }
-.es-lives-placard__notch--r { right: -7px; }
+.es-lives-placard__notch--l { left: -6px; }
+.es-lives-placard__notch--r { right: -6px; }
 
 .es-lives-placard__label {
   font-family: 'Rye', 'Playfair Display', serif;
@@ -300,52 +293,43 @@
       transparent 4px),
     linear-gradient(180deg, @cream 0%, @cream-2 100%);
   border: 3px solid @blood;
-  outline: 2px solid @gold;
-  outline-offset: 2px;
-  box-shadow:
-    inset 0 0 0 8px @cream,
-    inset 0 0 0 9px @blood,
-    inset 0 0 0 12px @cream,
-    0 18px 40px rgba(0,0,0,0.7);
-  padding: 30px 26px 26px;
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.7);
+  padding: 26px 24px 22px;
   display: flex;
   flex-direction: column;
   align-items: center;
   text-align: center;
   gap: 10px;
   color: @ink;
-  // Slight pinned-to-board tilt — ticket personality
   transform: rotate(-1.2deg);
-  // Marquee bulbs as a dotted top + bottom border via repeating radial gradient
+  // Dashed perforation tear-lines at top + bottom (inside the body)
   &::before, &::after {
     content: '';
     position: absolute;
-    left: 8px; right: 8px;
-    height: 8px;
-    background: radial-gradient(circle, @gold 0 2.2px, transparent 2.5px) 0 0 / 12px 8px repeat-x;
-    opacity: 0.95;
+    left: 10px; right: 10px;
+    height: 0;
+    border-top: 1.5px dashed rgba(@blood, 0.55);
+    pointer-events: none;
   }
-  &::before { top: 6px; }
-  &::after  { bottom: 6px; }
+  &::before { top: 14px; }
+  &::after  { bottom: 14px; }
 }
 
 // Ticket notches at all four "corner" points (perforated tear holes)
 .es-overlay__notch {
   position: absolute;
-  width: 22px;
-  height: 22px;
-  background: rgba(20, 6, 4, 0.7);
+  width: 20px;
+  height: 20px;
+  background: rgba(20, 6, 4, 0.85);
   border: 3px solid @blood;
-  outline: 2px solid @gold;
-  outline-offset: 2px;
   border-radius: 50%;
   pointer-events: none;
   z-index: 1;
 }
-.es-overlay__notch--tl { top: -11px;    left: -11px; }
-.es-overlay__notch--tr { top: -11px;    right: -11px; }
-.es-overlay__notch--bl { bottom: -11px; left: -11px; }
-.es-overlay__notch--br { bottom: -11px; right: -11px; }
+.es-overlay__notch--tl { top: -10px;    left: -10px; }
+.es-overlay__notch--tr { top: -10px;    right: -10px; }
+.es-overlay__notch--bl { bottom: -10px; left: -10px; }
+.es-overlay__notch--br { bottom: -10px; right: -10px; }
 
 // Top "EST" stamp banner that runs across the card top
 .es-stamp-bar {
