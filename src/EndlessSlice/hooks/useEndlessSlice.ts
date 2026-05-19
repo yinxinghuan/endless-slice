@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Flyer, FlyKind, Half, Impact, Particle, Screen, Stats, TrailPoint } from '../types';
 import { VISUALS, baseScoreFor, difficulty, isBomb, isGolden, pickPet, pickRegular } from '../utils/food';
 import {
-  drawBackground, drawFlyer, drawHalf, drawParticle, drawPetBadge, drawTitleWatermark, drawTrail, makeDrawCtx,
+  drawBackground, drawFlyer, drawHalf, drawImpactTicket, drawParticle, drawPetBadge, drawTitleWatermark, drawTrail, makeDrawCtx,
 } from '../utils/draw';
 import {
   sfxBomb, sfxMiss, sfxRunEnd, sfxSlice, sfxSwipeStart,
@@ -566,27 +566,10 @@ export function useEndlessSlice() {
         drawTrail(d, trailRef.current, now);
       }
 
-      // Impacts
+      // Impacts — circus poster ticket-stub style
       const lifetime = 700;
       impactsRef.current = impactsRef.current.filter(f => now - f.born < lifetime);
-      impactsRef.current.forEach(f => {
-        const k = (now - f.born) / lifetime;
-        const alpha = 1 - k;
-        const dy = -60 * scale * k;
-        const scaleBump = (1 + (1 - k) * 0.5) * f.scale;
-        ctx.save();
-        ctx.globalAlpha = alpha;
-        ctx.translate(f.x, f.y + dy);
-        ctx.scale(scaleBump, scaleBump);
-        ctx.font = `800 ${40 * scale}px 'Baloo 2', sans-serif`;
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillStyle = f.color;
-        ctx.shadowColor = 'rgba(0,0,0,0.7)';
-        ctx.shadowBlur = 10;
-        ctx.fillText(f.text, 0, 0);
-        ctx.restore();
-      });
+      impactsRef.current.forEach(f => drawImpactTicket(d, f, now, lifetime));
 
       // Screen flash
       const fl = flashRef.current;

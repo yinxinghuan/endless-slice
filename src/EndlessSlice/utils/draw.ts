@@ -1,4 +1,4 @@
-import type { Flyer, FlyKind, FlyerVisual, Half, Particle, TrailPoint } from '../types';
+import type { Flyer, FlyKind, FlyerVisual, Half, Impact, Particle, TrailPoint } from '../types';
 
 export interface DrawCtx {
   ctx: CanvasRenderingContext2D;
@@ -1483,6 +1483,93 @@ function drawPetHalo(ctx: CanvasRenderingContext2D, hx: number, hy: number, r: n
 }
 
 // ─── Particles ───────────────────────────────────────────────────────────
+
+/** Circus poster-stub style "+N" / "×N +N" callout drawn at each slice. */
+export function drawImpactTicket(d: DrawCtx, impact: Impact, now: number, lifetime: number) {
+  const k = (now - impact.born) / lifetime;
+  if (k >= 1) return;
+  const { ctx, scale } = d;
+  const alpha = 1 - k;
+  const dy = -70 * scale * k;
+  const popScale = (1 + (1 - k) * 0.55) * impact.scale;
+
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.translate(impact.x, impact.y + dy);
+  ctx.scale(popScale, popScale);
+
+  // Measure
+  const fontSize = 30 * scale;
+  ctx.font = `900 ${fontSize}px "Rye", "Playfair Display", serif`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  const tw = ctx.measureText(impact.text).width;
+  const padX = 22 * scale;
+  const ticketW = tw + padX * 2;
+  const ticketH = 40 * scale;
+  const rrad = ticketH / 2;
+
+  // Soft drop shadow
+  ctx.fillStyle = 'rgba(0,0,0,0.45)';
+  roundRect(ctx, -ticketW / 2 + 2 * scale, -ticketH / 2 + 4 * scale, ticketW, ticketH, rrad);
+  ctx.fill();
+
+  // Red/orange/gold body — color tied to combo via impact.color
+  ctx.fillStyle = impact.color;
+  roundRect(ctx, -ticketW / 2, -ticketH / 2, ticketW, ticketH, rrad);
+  ctx.fill();
+
+  // Cream double-trim
+  ctx.strokeStyle = 'rgba(245, 232, 200, 0.95)';
+  ctx.lineWidth = 2.4 * scale;
+  roundRect(ctx, -ticketW / 2 + 4 * scale, -ticketH / 2 + 4 * scale,
+            ticketW - 8 * scale, ticketH - 8 * scale, Math.max(2, rrad - 4 * scale));
+  ctx.stroke();
+
+  // Gold outer thread
+  ctx.strokeStyle = 'rgba(255, 210, 74, 0.85)';
+  ctx.lineWidth = 1.2 * scale;
+  roundRect(ctx, -ticketW / 2 - 1.5 * scale, -ticketH / 2 - 1.5 * scale,
+            ticketW + 3 * scale, ticketH + 3 * scale, rrad + 1.5 * scale);
+  ctx.stroke();
+
+  // Small dark perforation dots at the two ends (ticket-stub feel)
+  ctx.fillStyle = 'rgba(0,0,0,0.35)';
+  ctx.beginPath();
+  ctx.arc(-ticketW / 2 + 8 * scale, 0, 2 * scale, 0, Math.PI * 2);
+  ctx.arc( ticketW / 2 - 8 * scale, 0, 2 * scale, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Star flourishes on combo-heavy hits
+  const isComboHit = impact.text.startsWith('×') || impact.text.includes('GOLDEN');
+  if (isComboHit) {
+    drawTinyStar(ctx, -ticketW / 2 - 12 * scale, 0, 6 * scale, '#f5e8c8');
+    drawTinyStar(ctx,  ticketW / 2 + 12 * scale, 0, 6 * scale, '#f5e8c8');
+  }
+
+  // Text — cream with dark inset shadow, like a stamp pressed into paper
+  ctx.fillStyle = 'rgba(0,0,0,0.4)';
+  ctx.fillText(impact.text, 0, 3 * scale);
+  ctx.fillStyle = '#fff5e8';
+  ctx.fillText(impact.text, 0, 2 * scale);
+
+  ctx.restore();
+}
+
+function drawTinyStar(ctx: CanvasRenderingContext2D, cx: number, cy: number, r: number, color: string) {
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  for (let i = 0; i < 10; i++) {
+    const ang = (i / 10) * Math.PI * 2 - Math.PI / 2;
+    const rr = i % 2 === 0 ? r : r * 0.42;
+    const px = cx + Math.cos(ang) * rr;
+    const py = cy + Math.sin(ang) * rr;
+    if (i === 0) ctx.moveTo(px, py);
+    else ctx.lineTo(px, py);
+  }
+  ctx.closePath();
+  ctx.fill();
+}
 
 export function drawParticle(d: DrawCtx, p: Particle, now: number) {
   const { ctx } = d;
