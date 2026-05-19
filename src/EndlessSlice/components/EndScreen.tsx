@@ -46,6 +46,10 @@ export function EndScreen({ stats, best, onAgain, onOpenLeaderboard }: Props) {
   return (
     <div className="es-overlay es-overlay--end">
       <div className="es-overlay__inner">
+        <span className="es-overlay__notch es-overlay__notch--tl" aria-hidden />
+        <span className="es-overlay__notch es-overlay__notch--tr" aria-hidden />
+        <span className="es-overlay__notch es-overlay__notch--bl" aria-hidden />
+        <span className="es-overlay__notch es-overlay__notch--br" aria-hidden />
         <div className="es-stamp-bar">
           {killed ? (
             <>

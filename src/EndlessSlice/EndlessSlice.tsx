@@ -62,6 +62,8 @@ export default function EndlessSlice() {
             </div>
             <div className="es-hud__cell es-hud__cell--right">
               <div className="es-lives-placard" aria-label={`Lives ${lives} of 3`}>
+                <span className="es-lives-placard__notch es-lives-placard__notch--l" aria-hidden />
+                <span className="es-lives-placard__notch es-lives-placard__notch--r" aria-hidden />
                 <div className="es-lives-placard__label">LIVES</div>
                 <div className="es-lives-placard__row">
                   {[0, 1, 2].map(i => (

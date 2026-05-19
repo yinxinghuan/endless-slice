@@ -83,7 +83,7 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 8px 14px 7px;
+  padding: 9px 22px 8px;
   background:
     repeating-linear-gradient(90deg,
       rgba(184, 24, 24, 0.04) 0px,
@@ -94,23 +94,42 @@
   border: 2px solid @blood;
   outline: 1.5px solid @gold;
   outline-offset: 1.5px;
-  box-shadow:
-    0 2px 0 @blood-2,
-    0 6px 14px rgba(0, 0, 0, 0.55);
+  box-shadow: 0 5px 14px rgba(0, 0, 0, 0.55);
   gap: 4px;
+  // Slight tilt — ticket pinned to the board
+  transform: rotate(-2.5deg);
+  transform-origin: 70% 50%;
   // Marquee bulbs along the top edge
   &::before {
     content: '';
     position: absolute;
-    top: 2.5px;
-    left: 4px;
-    right: 4px;
+    top: 3px;
+    left: 8px;
+    right: 8px;
     height: 4px;
     background: radial-gradient(circle, @gold 0 1.5px, transparent 1.8px) 0 0 / 7px 4px repeat-x;
     opacity: 0.95;
     pointer-events: none;
   }
 }
+
+// Ticket side notches — half-circles cut into the left + right edges
+.es-lives-placard__notch {
+  position: absolute;
+  top: 50%;
+  width: 14px;
+  height: 14px;
+  background: #2a0808;          // sits over the red tent, blends with shadow
+  border: 2px solid @blood;
+  outline: 1.5px solid @gold;
+  outline-offset: 1.5px;
+  border-radius: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+  z-index: 2;
+}
+.es-lives-placard__notch--l { left: -7px; }
+.es-lives-placard__notch--r { right: -7px; }
 
 .es-lives-placard__label {
   font-family: 'Rye', 'Playfair Display', serif;
@@ -295,6 +314,8 @@
   text-align: center;
   gap: 10px;
   color: @ink;
+  // Slight pinned-to-board tilt — ticket personality
+  transform: rotate(-1.2deg);
   // Marquee bulbs as a dotted top + bottom border via repeating radial gradient
   &::before, &::after {
     content: '';
@@ -307,6 +328,24 @@
   &::before { top: 6px; }
   &::after  { bottom: 6px; }
 }
+
+// Ticket notches at all four "corner" points (perforated tear holes)
+.es-overlay__notch {
+  position: absolute;
+  width: 22px;
+  height: 22px;
+  background: rgba(20, 6, 4, 0.7);
+  border: 3px solid @blood;
+  outline: 2px solid @gold;
+  outline-offset: 2px;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 1;
+}
+.es-overlay__notch--tl { top: -11px;    left: -11px; }
+.es-overlay__notch--tr { top: -11px;    right: -11px; }
+.es-overlay__notch--bl { bottom: -11px; left: -11px; }
+.es-overlay__notch--br { bottom: -11px; right: -11px; }
 
 // Top "EST" stamp banner that runs across the card top
 .es-stamp-bar {
