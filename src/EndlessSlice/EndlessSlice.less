@@ -55,13 +55,29 @@
   }
 }
 .es-banner__title {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+  color: @blood;
+  line-height: 0.85;
+}
+.es-banner__word {
   font-family: 'Playfair Display', 'Bodoni 72', Georgia, serif;
   font-style: italic;
   font-weight: 900;
-  font-size: 40px;
-  letter-spacing: -0.01em;
-  color: @blood;
-  line-height: 1;
+  font-size: 56px;
+  letter-spacing: -0.02em;
+}
+.es-banner__joiner {
+  font-family: 'Playfair Display', 'Bodoni 72', Georgia, serif;
+  font-style: italic;
+  font-weight: 700;
+  font-size: 22px;
+  letter-spacing: 0.04em;
+  text-transform: lowercase;
+  margin: 2px 0 4px;
+  opacity: 0.82;
 }
 .es-banner__sub {
   font-family: 'Inter', system-ui, sans-serif;
