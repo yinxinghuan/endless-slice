@@ -1516,7 +1516,10 @@ function drawPetHalo(ctx: CanvasRenderingContext2D, hx: number, hy: number, r: n
 
 // ─── Particles ───────────────────────────────────────────────────────────
 
-/** Circus poster-stub style "+N" / "×N +N" callout drawn at each slice. */
+/** Slice "+N" / "×N +N" callout — circus poster letterpress style, no frame.
+ *  Cream fill + thick blood-red stroke + dark drop shadow, matching the MISS
+ *  banner treatment so the two scoring callouts feel like a typographic family.
+ */
 export function drawImpactTicket(d: DrawCtx, impact: Impact, now: number, lifetime: number) {
   const k = (now - impact.born) / lifetime;
   if (k >= 1) return;
@@ -1530,60 +1533,37 @@ export function drawImpactTicket(d: DrawCtx, impact: Impact, now: number, lifeti
   ctx.translate(impact.x, impact.y + dy);
   ctx.scale(popScale, popScale);
 
-  // Measure
-  const fontSize = 30 * scale;
-  ctx.font = `900 ${fontSize}px "Rye", "Playfair Display", serif`;
+  const text = impact.text;
+  const isCombo = text.startsWith('×');
+  const isGolden = text.includes('GOLDEN');
+  const fontSize = (isCombo || isGolden ? 42 : 34) * scale;
+  ctx.font = `400 ${fontSize}px "Rye", "Playfair Display", serif`;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  const tw = ctx.measureText(impact.text).width;
-  const padX = 22 * scale;
-  const ticketW = tw + padX * 2;
-  const ticketH = 40 * scale;
-  const rrad = ticketH / 2;
+  ctx.lineJoin = 'round';
 
-  // Soft drop shadow
-  ctx.fillStyle = 'rgba(0,0,0,0.45)';
-  roundRect(ctx, -ticketW / 2 + 2 * scale, -ticketH / 2 + 4 * scale, ticketW, ticketH, rrad);
-  ctx.fill();
+  // Dark drop shadow
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.55)';
+  ctx.fillText(text, 0, 4 * scale);
 
-  // Red/orange/gold body — color tied to combo via impact.color
-  ctx.fillStyle = impact.color;
-  roundRect(ctx, -ticketW / 2, -ticketH / 2, ticketW, ticketH, rrad);
-  ctx.fill();
+  // Blood-red stroke outline (thick)
+  ctx.strokeStyle = '#7a1010';
+  ctx.lineWidth = 7 * scale;
+  ctx.strokeText(text, 0, 0);
+  ctx.strokeStyle = '#b81818';
+  ctx.lineWidth = 4 * scale;
+  ctx.strokeText(text, 0, 0);
 
-  // Cream double-trim
-  ctx.strokeStyle = 'rgba(245, 232, 200, 0.95)';
-  ctx.lineWidth = 2.4 * scale;
-  roundRect(ctx, -ticketW / 2 + 4 * scale, -ticketH / 2 + 4 * scale,
-            ticketW - 8 * scale, ticketH - 8 * scale, Math.max(2, rrad - 4 * scale));
-  ctx.stroke();
+  // Fill: cream for normal hits, gold for golden bonus
+  ctx.fillStyle = isGolden ? '#ffd24a' : '#fff5e8';
+  ctx.fillText(text, 0, 0);
 
-  // Gold outer thread
-  ctx.strokeStyle = 'rgba(255, 210, 74, 0.85)';
-  ctx.lineWidth = 1.2 * scale;
-  roundRect(ctx, -ticketW / 2 - 1.5 * scale, -ticketH / 2 - 1.5 * scale,
-            ticketW + 3 * scale, ticketH + 3 * scale, rrad + 1.5 * scale);
-  ctx.stroke();
-
-  // Small dark perforation dots at the two ends (ticket-stub feel)
-  ctx.fillStyle = 'rgba(0,0,0,0.35)';
-  ctx.beginPath();
-  ctx.arc(-ticketW / 2 + 8 * scale, 0, 2 * scale, 0, Math.PI * 2);
-  ctx.arc( ticketW / 2 - 8 * scale, 0, 2 * scale, 0, Math.PI * 2);
-  ctx.fill();
-
-  // Star flourishes on combo-heavy hits
-  const isComboHit = impact.text.startsWith('×') || impact.text.includes('GOLDEN');
-  if (isComboHit) {
-    drawTinyStar(ctx, -ticketW / 2 - 12 * scale, 0, 6 * scale, '#f5e8c8');
-    drawTinyStar(ctx,  ticketW / 2 + 12 * scale, 0, 6 * scale, '#f5e8c8');
+  // Star flourishes on combo / golden hits
+  if (isCombo || isGolden) {
+    const tw = ctx.measureText(text).width;
+    drawTinyStar(ctx, -tw / 2 - 18 * scale, -2 * scale, 8 * scale, '#fff5e8');
+    drawTinyStar(ctx,  tw / 2 + 18 * scale, -2 * scale, 8 * scale, '#fff5e8');
   }
-
-  // Text — cream with dark inset shadow, like a stamp pressed into paper
-  ctx.fillStyle = 'rgba(0,0,0,0.4)';
-  ctx.fillText(impact.text, 0, 3 * scale);
-  ctx.fillStyle = '#fff5e8';
-  ctx.fillText(impact.text, 0, 2 * scale);
 
   ctx.restore();
 }

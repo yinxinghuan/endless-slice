@@ -4,7 +4,7 @@ import type { FlyKind, FlyerVisual } from '../types';
 // Full-body animals have horizontal extents up to ~1.4×r in width and ~r in height.
 export const VISUALS: Record<FlyKind, FlyerVisual> = {
   chicken: {
-    radius: 62,
+    radius: 76,
     body:   '#ffe884',
     accent: '#ff3a1a',
     dark:   '#e0721a',
@@ -14,7 +14,7 @@ export const VISUALS: Record<FlyKind, FlyerVisual> = {
     flash:  '#ffe884',
   },
   duck: {
-    radius: 76,
+    radius: 92,
     body:   '#fff080',
     accent: '#ff8025',
     dark:   '#b85008',
@@ -24,7 +24,7 @@ export const VISUALS: Record<FlyKind, FlyerVisual> = {
     flash:  '#ffd24a',
   },
   pig: {
-    radius: 108,
+    radius: 130,
     body:   '#ffc7c7',
     accent: '#ff9aa6',
     dark:   '#a06070',
@@ -34,7 +34,7 @@ export const VISUALS: Record<FlyKind, FlyerVisual> = {
     flash:  '#ff7090',
   },
   sheep: {
-    radius: 132,
+    radius: 158,
     body:   '#fbf3df',
     accent: '#1a1a1a',
     dark:   '#3a2a1a',
@@ -44,7 +44,7 @@ export const VISUALS: Record<FlyKind, FlyerVisual> = {
     flash:  '#fff0e0',
   },
   cow: {
-    radius: 180,
+    radius: 215,
     body:   '#fafafa',
     accent: '#1d1d1f',
     dark:   '#a07a4a',
@@ -54,7 +54,7 @@ export const VISUALS: Record<FlyKind, FlyerVisual> = {
     flash:  '#ff6a6a',
   },
   wagyu: {
-    radius: 60,
+    radius: 72,
     body:   '#b8253a',
     accent: '#ffd24a',
     dark:   '#fff0f0',
@@ -64,7 +64,7 @@ export const VISUALS: Record<FlyKind, FlyerVisual> = {
     flash:  '#ffd24a',
   },
   puppy: {
-    radius: 92,
+    radius: 110,
     body:   '#f0c878',   // golden retriever tan
     accent: '#9c5418',   // dark muzzle / ear tips
     dark:   '#3a3a3a',
@@ -74,7 +74,7 @@ export const VISUALS: Record<FlyKind, FlyerVisual> = {
     flash:  '#ff5050',
   },
   kitten: {
-    radius: 80,
+    radius: 96,
     body:   '#b8b4ad',
     accent: '#5a564f',
     dark:   '#3a3a3a',
@@ -84,7 +84,7 @@ export const VISUALS: Record<FlyKind, FlyerVisual> = {
     flash:  '#ff5050',
   },
   bunny: {
-    radius: 76,
+    radius: 92,
     body:   '#fcfcfc',
     accent: '#ffd0e0',
     dark:   '#1a1a1a',
@@ -94,7 +94,7 @@ export const VISUALS: Record<FlyKind, FlyerVisual> = {
     flash:  '#ff5050',
   },
   hamster: {
-    radius: 60,
+    radius: 72,
     body:   '#e89e58',
     accent: '#fff4d8',
     dark:   '#3a2a18',
