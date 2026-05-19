@@ -94,8 +94,8 @@
   border: 2px solid @blood;
   box-shadow: 0 5px 14px rgba(0, 0, 0, 0.55);
   gap: 4px;
-  // Slight tilt — ticket pinned to the board
-  transform: rotate(-2.5deg);
+  // Pinned-to-the-board tilt — clear "ticket stuck on the wall" personality
+  transform: rotate(-6deg);
   transform-origin: 70% 50%;
   // Dashed perforation tear-line at the bottom right area
   &::before {
@@ -301,7 +301,7 @@
   text-align: center;
   gap: 10px;
   color: @ink;
-  transform: rotate(-1.2deg);
+  transform: rotate(-3deg);
   // Dashed perforation tear-lines at top + bottom (inside the body)
   &::before, &::after {
     content: '';
