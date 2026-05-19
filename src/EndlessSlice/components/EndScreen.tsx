@@ -13,6 +13,11 @@ export function EndScreen({ stats, best, onAgain, onHome, onOpenLeaderboard }: P
   return (
     <div className="es-overlay es-overlay--end">
       <div className="es-overlay__inner">
+        <div className="es-stamp-bar">
+          <span>RECEIPT</span>
+          <span>NO. {Math.floor(stats.finalScore / 7) || 1}</span>
+          <span>PAID IN FULL</span>
+        </div>
         {stats.isNewBest && <div className="es-new-best">{t('new_best')}</div>}
         <div className="es-final">
           <div className="es-final__label">{t('final_score')}</div>

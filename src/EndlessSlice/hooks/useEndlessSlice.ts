@@ -358,7 +358,7 @@ export function useEndlessSlice() {
     for (let i = 0; i < count; i++) {
       let kind: FlyKind;
       const roll = Math.random();
-      if (roll < bombRate) kind = 'no_butcher';
+      if (roll < bombRate) kind = 'puppy';
       else if (roll < bombRate + goldenRate) kind = 'wagyu';
       else kind = pickRegular(Math.random);
       const visual = VISUALS[kind];

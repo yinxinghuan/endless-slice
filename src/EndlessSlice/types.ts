@@ -6,8 +6,8 @@ export type FlyKind =
   | 'chicken'
   | 'sheep'
   | 'duck'
-  | 'wagyu'        // golden bonus
-  | 'no_butcher';  // bomb (PETA-style warning sign)
+  | 'wagyu'   // golden bonus (luxury beef cube)
+  | 'puppy';  // bomb (pet — slicing it ends the run)
 
 export interface FlyerVisual {
   /** Display radius in design-units (1080-wide reference canvas) */

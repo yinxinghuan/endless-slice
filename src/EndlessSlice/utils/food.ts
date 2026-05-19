@@ -1,8 +1,30 @@
 import type { FlyKind, FlyerVisual } from '../types';
 
+// `radius` here = effective bounding half-size for hit detection.
+// Full-body animals have horizontal extents up to ~1.4×r in width and ~r in height.
 export const VISUALS: Record<FlyKind, FlyerVisual> = {
+  chicken: {
+    radius: 78,
+    body:   '#ffe884',
+    accent: '#ff3a1a',
+    dark:   '#e0721a',
+    flesh:  '#ffb494',
+    fat:    '#fff0e0',
+    bone:   '#fffaf2',
+    flash:  '#ffe884',
+  },
+  duck: {
+    radius: 84,
+    body:   '#fff080',
+    accent: '#ff8025',
+    dark:   '#b85008',
+    flesh:  '#a04030',
+    fat:    '#ffe0c0',
+    bone:   '#fffaf2',
+    flash:  '#ffd24a',
+  },
   pig: {
-    radius: 92,
+    radius: 104,
     body:   '#ffc7c7',
     accent: '#ff9aa6',
     dark:   '#a06070',
@@ -11,82 +33,77 @@ export const VISUALS: Record<FlyKind, FlyerVisual> = {
     bone:   '#fffaf2',
     flash:  '#ff7090',
   },
-  cow: {
-    radius: 100,
-    body:   '#fafafa',
-    accent: '#1d1d1f',
-    dark:   '#a07a4a',   // horns
-    flesh:  '#a02238',
-    fat:    '#ffe5d6',
-    bone:   '#fffaf2',
-    flash:  '#ff6a6a',
-  },
-  chicken: {
-    radius: 80,
-    body:   '#ffe884',
-    accent: '#ff3a1a',   // comb
-    dark:   '#e0721a',   // beak
-    flesh:  '#ffb494',
-    fat:    '#fff0e0',
-    bone:   '#fffaf2',
-    flash:  '#ffe884',
-  },
   sheep: {
-    radius: 96,
-    body:   '#fbf3df',   // fleece off-white
-    accent: '#1a1a1a',   // face
+    radius: 112,
+    body:   '#fbf3df',
+    accent: '#1a1a1a',
     dark:   '#3a2a1a',
     flesh:  '#b32a48',
     fat:    '#ffe5d8',
     bone:   '#fffaf2',
     flash:  '#fff0e0',
   },
-  duck: {
-    radius: 84,
-    body:   '#fff080',
-    accent: '#ff8025',   // bill
-    dark:   '#b85008',
-    flesh:  '#a04030',
-    fat:    '#ffe0c0',
+  cow: {
+    radius: 132,
+    body:   '#fafafa',
+    accent: '#1d1d1f',
+    dark:   '#a07a4a',
+    flesh:  '#a02238',
+    fat:    '#ffe5d6',
     bone:   '#fffaf2',
-    flash:  '#ffd24a',
+    flash:  '#ff6a6a',
   },
   wagyu: {
-    radius: 76,
+    radius: 72,
     body:   '#b8253a',
-    accent: '#ffd24a',   // gold A5
-    dark:   '#fff0f0',   // marbling
+    accent: '#ffd24a',
+    dark:   '#fff0f0',
     flesh:  '#a02238',
     fat:    '#fff0d8',
     bone:   '#fffaf2',
     flash:  '#ffd24a',
   },
-  no_butcher: {
-    radius: 88,
-    body:   '#ff3340',   // red sign body
-    accent: '#ffffff',   // slash + icon
-    dark:   '#a00010',
-    flesh:  '#ff3340',
-    fat:    '#fff',
-    bone:   '#fff',
-    flash:  '#ff5050',
+  puppy: {
+    radius: 92,
+    body:   '#f0c878',   // golden retriever tan
+    accent: '#9c5418',   // dark muzzle / ear tips
+    dark:   '#3a3a3a',   // nose
+    flesh:  '#ff9090',
+    fat:    '#fff0e0',
+    bone:   '#fffaf2',
+    flash:  '#ff5050',   // the moment you cut it: red flash of regret
   },
 };
 
-export const REGULAR_KINDS: FlyKind[] = ['pig', 'cow', 'chicken', 'sheep', 'duck'];
+export const REGULAR_KINDS: FlyKind[] = ['chicken', 'duck', 'pig', 'sheep', 'cow'];
 
-export function isBomb(kind: FlyKind): boolean { return kind === 'no_butcher'; }
+export function isBomb(kind: FlyKind): boolean { return kind === 'puppy'; }
 export function isGolden(kind: FlyKind): boolean { return kind === 'wagyu'; }
 
 export function baseScoreFor(kind: FlyKind): number {
   const r = VISUALS[kind].radius;
-  if (r >= 96) return 15;   // big animals (cow / sheep)
-  if (r <= 80) return 15;   // small (chicken)
-  return 10;
+  if (r >= 120) return 20;  // cow — biggest, highest base
+  if (r >= 100) return 15;  // pig / sheep
+  if (r <= 80)  return 10;  // chicken (small + nimble)
+  return 12;                // duck
 }
 
 export function pickRegular(rng: () => number): FlyKind {
-  return REGULAR_KINDS[Math.floor(rng() * REGULAR_KINDS.length)];
+  // Weighted: smaller animals appear more often, cow rare → bigger reward
+  const weights: Array<[FlyKind, number]> = [
+    ['chicken', 10],
+    ['duck',     9],
+    ['pig',      8],
+    ['sheep',    6],
+    ['cow',      4],
+  ];
+  const total = weights.reduce((a, [, w]) => a + w, 0);
+  let r = rng() * total;
+  for (const [k, w] of weights) {
+    r -= w;
+    if (r <= 0) return k;
+  }
+  return weights[0][0];
 }
 
 export function difficulty(t: number) {
