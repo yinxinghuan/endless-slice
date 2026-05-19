@@ -27,67 +27,8 @@
   display: block;
 }
 
-// ─── Persistent title banner ─────────────────────────────────────────────
-
-.es-banner {
-  position: absolute;
-  top: 60px;
-  left: 0; right: 0;
-  pointer-events: none;
-  z-index: 3;
-  text-align: center;
-  user-select: none;
-  padding: 16px 12px 18px;
-  // Dim ellipse behind the title — darkens the middle of the canvas so the
-  // deep-red title reads cleanly, without needing drop-shadows.
-  &::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: radial-gradient(
-      ellipse 60% 100% at 50% 50%,
-      rgba(0, 0, 0, 0.55) 0%,
-      rgba(0, 0, 0, 0.32) 45%,
-      rgba(0, 0, 0, 0) 100%
-    );
-    pointer-events: none;
-    z-index: -1;
-  }
-}
-.es-banner__title {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0;
-  color: @blood;
-  line-height: 0.85;
-}
-.es-banner__word {
-  font-family: 'Playfair Display', 'Bodoni 72', Georgia, serif;
-  font-style: italic;
-  font-weight: 900;
-  font-size: 56px;
-  letter-spacing: -0.02em;
-}
-.es-banner__joiner {
-  font-family: 'Playfair Display', 'Bodoni 72', Georgia, serif;
-  font-style: italic;
-  font-weight: 700;
-  font-size: 22px;
-  letter-spacing: 0.04em;
-  text-transform: lowercase;
-  margin: 2px 0 4px;
-  opacity: 0.82;
-}
-.es-banner__sub {
-  font-family: 'Inter', system-ui, sans-serif;
-  font-size: 9px;
-  letter-spacing: 0.36em;
-  text-transform: uppercase;
-  color: rgba(@cream, 0.4);
-  font-weight: 700;
-  margin-top: 8px;
-}
+// Title is debossed directly onto the canvas (see drawTitleWatermark in
+// draw.ts). No DOM banner needed.
 
 // ─── HUD ──────────────────────────────────────────────────────────────────
 

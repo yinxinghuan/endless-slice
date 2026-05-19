@@ -60,16 +60,7 @@ export default function EndlessSlice() {
       }}
     >
       <canvas ref={canvasRef} className="es-canvas" />
-
-      {/* Persistent banner — title sits on the game backdrop */}
-      <div className="es-banner" aria-hidden>
-        <div className="es-banner__title">
-          <span className="es-banner__word">FARM</span>
-          <span className="es-banner__joiner">to</span>
-          <span className="es-banner__word">TABLE</span>
-        </div>
-        <div className="es-banner__sub">GRADE&nbsp;A · EST. 2026 · DAILY FRESH</div>
-      </div>
+      {/* Title is drawn directly onto the canvas as a debossed watermark. */}
 
       {screen === 'playing' && (
         <>

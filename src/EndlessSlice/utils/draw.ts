@@ -67,6 +67,56 @@ export function drawBackground(d: DrawCtx, t: number) {
   ctx.restore();
 }
 
+// ─── Title watermark (debossed into the canvas backdrop) ────────────────
+//
+// Drawn AFTER drawBackground but BEFORE flyers / halves / particles so that
+// gameplay floats in front of the title. Same trick Marbles uses: three text
+// layers — light edge below + dark edge above + dark-fill carved letter.
+
+export function drawTitleWatermark(d: DrawCtx) {
+  const { ctx, W, H } = d;
+  const cx = W / 2;
+  const cy = H / 2;
+
+  // Big serif size auto-fits to ~84% of the canvas width so it never wraps.
+  const ctx2d = ctx as CanvasRenderingContext2D & { letterSpacing?: string };
+  ctx2d.letterSpacing = '0.02em';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+
+  const maxW = W * 0.84;
+  let bigSize = Math.min(W * 0.22, H * 0.18);
+  for (; bigSize >= 36; bigSize -= 2) {
+    ctx.font = `italic 900 ${bigSize}px "Playfair Display", "Bodoni 72", "Times New Roman", serif`;
+    // FARM and TABLE share the larger font; measure the longer one.
+    const wm = ctx.measureText('TABLE').width;
+    if (wm <= maxW) break;
+  }
+  const smallSize = bigSize * 0.34;
+  const lineGap = bigSize * 0.86;
+
+  drawDebossedLine(ctx, 'FARM',  cx, cy - lineGap, bigSize,   'italic 900');
+  drawDebossedLine(ctx, 'to',    cx, cy,           smallSize, 'italic 700');
+  drawDebossedLine(ctx, 'TABLE', cx, cy + lineGap, bigSize,   'italic 900');
+
+  ctx2d.letterSpacing = '0em';
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'alphabetic';
+}
+
+function drawDebossedLine(ctx: CanvasRenderingContext2D, text: string, x: number, y: number, size: number, weight: string) {
+  ctx.font = `${weight} ${size}px "Playfair Display", "Bodoni 72", "Times New Roman", serif`;
+  // Bottom-right rim catches light → subtle warm highlight
+  ctx.fillStyle = 'rgba(255, 220, 180, 0.08)';
+  ctx.fillText(text, x + 1.4, y + 1.8);
+  // Top-left rim falls in shadow → dark edge that "indents" the letter
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.50)';
+  ctx.fillText(text, x - 0.6, y - 1.8);
+  // Carved-in main fill — slightly darker than the tile backdrop
+  ctx.fillStyle = '#34080a';
+  ctx.fillText(text, x, y);
+}
+
 // ─── Whole flyer ─────────────────────────────────────────────────────────
 
 export function drawFlyer(d: DrawCtx, f: Flyer) {
