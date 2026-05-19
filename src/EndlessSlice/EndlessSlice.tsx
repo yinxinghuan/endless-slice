@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useEndlessSlice } from './hooks/useEndlessSlice';
 import { EndScreen } from './components/EndScreen';
 import { TutorialOverlay } from './components/TutorialOverlay';
+import { CircusHeart } from './components/CircusHeart';
 import { useGameScore, Leaderboard } from '@shared/leaderboard';
 import { t } from './i18n';
 import alteruUrl from './img/alteru.svg';
@@ -60,16 +61,13 @@ export default function EndlessSlice() {
               <div className="es-hud__value">{score}</div>
             </div>
             <div className="es-hud__cell es-hud__cell--right">
-              <div className="es-hud__lives">
-                {[0, 1, 2].map(i => (
-                  <span
-                    key={i}
-                    className={`es-heart ${i < lives ? 'es-heart--on' : 'es-heart--off'}`}
-                    aria-hidden
-                  >
-                    <svg viewBox="0 0 24 24"><path d="M12 21s-7.5-4.8-9.6-9.2C.7 7.4 4 3 8.2 3c2 0 3.4 1 3.8 2.2C12.4 4 13.8 3 15.8 3 20 3 23.3 7.4 21.6 11.8 19.5 16.2 12 21 12 21z"/></svg>
-                  </span>
-                ))}
+              <div className="es-lives-placard" aria-label={`Lives ${lives} of 3`}>
+                <div className="es-lives-placard__label">LIVES</div>
+                <div className="es-lives-placard__row">
+                  {[0, 1, 2].map(i => (
+                    <CircusHeart key={i} on={i < lives} index={i} />
+                  ))}
+                </div>
               </div>
               <div className="es-hud__label es-hud__label--right">{t('best')} · {best}</div>
             </div>
