@@ -39,58 +39,7 @@ export function drawBackground(d: DrawCtx, t: number) {
   }
   ctx.restore();
 
-  // ── 2. Top valance: gold scalloped swag ──
-  const valanceH = 64 * d.scale;
-  // Gold band
-  const goldGrad = ctx.createLinearGradient(0, 0, 0, valanceH * 0.5);
-  goldGrad.addColorStop(0, '#ffe27a');
-  goldGrad.addColorStop(1, '#caa028');
-  ctx.fillStyle = goldGrad;
-  ctx.fillRect(0, 0, W, valanceH * 0.4);
-  // Scalloped lower edge of valance
-  ctx.beginPath();
-  ctx.moveTo(0, valanceH * 0.4);
-  const scallopR = valanceH * 0.35;
-  const scallopGap = scallopR * 1.55;
-  for (let x = scallopR * 0.6; x < W + scallopR; x += scallopGap) {
-    ctx.arc(x, valanceH * 0.4, scallopR, 0, Math.PI);
-  }
-  ctx.lineTo(W, valanceH * 0.4);
-  ctx.lineTo(W, 0);
-  ctx.lineTo(0, 0);
-  ctx.closePath();
-  ctx.fillStyle = goldGrad;
-  ctx.fill();
-  // Scallop tassels (small gold drops)
-  ctx.fillStyle = '#caa028';
-  for (let x = scallopR * 0.6 + scallopR; x < W; x += scallopGap) {
-    ctx.beginPath();
-    ctx.arc(x, valanceH * 0.75, scallopR * 0.18, 0, Math.PI * 2);
-    ctx.fill();
-  }
-  // Cream lining under valance
-  ctx.fillStyle = '#f5e8c8';
-  ctx.fillRect(0, valanceH * 0.40, W, 3 * d.scale);
-
-  // ── 3. Bottom stage edge: gold rim ──
-  const stageH = 22 * d.scale;
-  const stageGrad = ctx.createLinearGradient(0, H - stageH, 0, H);
-  stageGrad.addColorStop(0, '#caa028');
-  stageGrad.addColorStop(1, '#7a5818');
-  ctx.fillStyle = stageGrad;
-  ctx.fillRect(0, H - stageH, W, stageH);
-  // Cream highlight at top of stage rim
-  ctx.fillStyle = '#f5e8c8';
-  ctx.fillRect(0, H - stageH, W, 2 * d.scale);
-
-  // ── 4. Warm overhead spotlight ──
-  const lg = ctx.createRadialGradient(W * 0.5, valanceH * 0.5, 40 * d.scale, W * 0.5, H * 0.4, Math.max(W, H));
-  lg.addColorStop(0, 'rgba(255, 220, 150, 0.18)');
-  lg.addColorStop(1, 'rgba(0, 0, 0, 0)');
-  ctx.fillStyle = lg;
-  ctx.fillRect(0, 0, W, H);
-
-  // ── 5. Floating dust ──
+  // Floating dust motes
   ctx.save();
   ctx.globalCompositeOperation = 'lighter';
   for (let i = 0; i < 18; i++) {
@@ -104,6 +53,85 @@ export function drawBackground(d: DrawCtx, t: number) {
     ctx.arc(((px % W) + W) % W, ((py % H) + H) % H, r, 0, Math.PI * 2);
     ctx.fill();
   }
+  ctx.restore();
+}
+
+// ─── Stage spotlights ────────────────────────────────────────────────────
+//
+// Two drifting overhead spotlights lay warm soft pools on the tent fabric
+// (additive radial gradients). Combined with drawObjectShadows() for
+// flyers/halves, this delivers the stage-light feel without garish framing.
+
+export interface Spotlight { cx: number; cy: number; r: number; color: string }
+
+export function getSpotlights(t: number, W: number, H: number): Spotlight[] {
+  return [
+    {
+      cx: W * 0.5 + Math.sin(t * 0.00040) * W * 0.22,
+      cy: H * 0.32 + Math.sin(t * 0.00035) * H * 0.07,
+      r:  Math.max(W, H) * 0.55,
+      color: 'rgba(255, 220, 150, 0.22)',
+    },
+    {
+      cx: W * 0.30 - Math.sin(t * 0.00055) * W * 0.18,
+      cy: H * 0.58 + Math.cos(t * 0.00042) * H * 0.05,
+      r:  Math.max(W, H) * 0.42,
+      color: 'rgba(255, 170, 210, 0.14)',
+    },
+  ];
+}
+
+export function drawSpotlights(d: DrawCtx, lights: Spotlight[]) {
+  const { ctx, W, H } = d;
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  for (const L of lights) {
+    const g = ctx.createRadialGradient(L.cx, L.cy, 0, L.cx, L.cy, L.r);
+    g.addColorStop(0,    L.color);
+    g.addColorStop(0.55, L.color.replace(/,\s*0?\.[0-9]+\)/, ', 0.04)'));
+    g.addColorStop(1,    'rgba(0,0,0,0)');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, W, H);
+  }
+  ctx.restore();
+}
+
+/**
+ * Soft blurred shadow drawn under each living flyer and tumbling half,
+ * offset away from the dominant overhead spotlight. Drawn AFTER background
+ * + spotlights but BEFORE the objects themselves, so the shadow lands on
+ * the tent fabric beneath the object.
+ */
+export function drawObjectShadows(d: DrawCtx, flyers: Flyer[], halves: Half[], lights: Spotlight[]) {
+  if (lights.length === 0) return;
+  const { ctx, scale } = d;
+  const L = lights[0]; // dominant light
+
+  const drop = (x: number, y: number, r: number, alpha: number) => {
+    const dx = x - L.cx;
+    const dy = y - L.cy;
+    const len = Math.hypot(dx, dy) || 1;
+    const push = 22 * scale;
+    const sx = x + (dx / len) * push;
+    const sy = y + (dy / len) * push + 16 * scale;
+    const g = ctx.createRadialGradient(sx, sy, 0, sx, sy, r * 1.5);
+    g.addColorStop(0,    `rgba(0,0,0,${alpha})`);
+    g.addColorStop(0.55, `rgba(0,0,0,${alpha * 0.35})`);
+    g.addColorStop(1,    'rgba(0,0,0,0)');
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.ellipse(sx, sy, r * 1.25, r * 0.6, 0, 0, Math.PI * 2);
+    ctx.fill();
+  };
+
+  ctx.save();
+  flyers.forEach(f => {
+    if (f.sliced) return;
+    drop(f.x, f.y, f.visual.radius * scale, 0.45);
+  });
+  halves.forEach(h => {
+    drop(h.x, h.y, h.visual.radius * scale, 0.32);
+  });
   ctx.restore();
 }
 

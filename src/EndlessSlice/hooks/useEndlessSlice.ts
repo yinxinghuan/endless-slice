@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Flyer, FlyKind, Half, Impact, Particle, Screen, Stats, TrailPoint } from '../types';
 import { VISUALS, baseScoreFor, difficulty, isBomb, isGolden, pickPet, pickRegular } from '../utils/food';
 import {
-  drawBackground, drawFlyer, drawHalf, drawImpactTicket, drawParticle, drawPetBadge, drawTitleWatermark, drawTrail, makeDrawCtx,
+  drawBackground, drawFlyer, drawHalf, drawImpactTicket, drawObjectShadows, drawParticle, drawPetBadge, drawSpotlights, drawTitleWatermark, drawTrail, getSpotlights, makeDrawCtx,
 } from '../utils/draw';
 import {
   sfxBomb, sfxMiss, sfxRunEnd, sfxSlice, sfxSwipeStart,
@@ -474,7 +474,10 @@ export function useEndlessSlice() {
       const now = performance.now();
 
       drawBackground(d, t);
+      const lights = getSpotlights(t, W, H);
+      drawSpotlights(d, lights);
       drawTitleWatermark(d);
+      drawObjectShadows(d, flyersRef.current, halvesRef.current, lights);
 
       if (screenRef.current === 'playing' && !frozenRef.current) {
         // Only advance the difficulty clock once the player has touched.
