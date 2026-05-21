@@ -26,6 +26,7 @@ interface Props {
   best: number;
   onAgain: () => void;
   onOpenLeaderboard: () => void;
+  canRank: boolean;
 }
 
 const PET_NAME: Record<string, string> = {
@@ -58,7 +59,7 @@ function SlainPetCanvas({ kind }: { kind: FlyKind }) {
   return <canvas ref={ref} className="es-pet-canvas" />;
 }
 
-export function EndScreen({ stats, best, onAgain, onOpenLeaderboard }: Props) {
+export function EndScreen({ stats, best, onAgain, onOpenLeaderboard, canRank }: Props) {
   const killed = stats.killedPet;
   // Random flavor — rolled once per EndScreen mount so re-renders stay stable.
   const flavor = useMemo(() => {
@@ -136,7 +137,9 @@ export function EndScreen({ stats, best, onAgain, onOpenLeaderboard }: Props) {
         </div>
         <div className="es-buttons">
           <button className="es-btn es-btn--primary" onPointerDown={onAgain}>{t('again')}</button>
-          <button className="es-btn es-btn--ghost" onPointerDown={onOpenLeaderboard}>{t('leaderboard')}</button>
+          {canRank && (
+            <button className="es-btn es-btn--ghost" onPointerDown={onOpenLeaderboard}>{t('leaderboard')}</button>
+          )}
         </div>
       </div>
     </div>

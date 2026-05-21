@@ -16,8 +16,7 @@ export default function EndlessSlice() {
     onPointerDown, onPointerMove, onPointerUp,
   } = useEndlessSlice();
 
-  const { isInAigram, submitScore, fetchGlobalLeaderboard, fetchFriendsLeaderboard } =
-    useGameScore('endless-slice');
+  const { isInAigram, canRank, submitScore, fetchLeaderboard } = useGameScore();
   const [showLeaderboard, setShowLeaderboard] = useState(false);
   // Tutorial loops on every fresh round until the player makes their first
   // pointer-down. No localStorage gating — the demo should always be there
@@ -110,6 +109,7 @@ export default function EndlessSlice() {
           best={best}
           onAgain={start}
           onOpenLeaderboard={() => setShowLeaderboard(true)}
+          canRank={canRank}
         />
       )}
 
@@ -117,8 +117,7 @@ export default function EndlessSlice() {
         <Leaderboard
           gameName="Farm to Table"
           onClose={() => setShowLeaderboard(false)}
-          fetchGlobal={fetchGlobalLeaderboard}
-          fetchFriends={fetchFriendsLeaderboard}
+          fetch={fetchLeaderboard}
           isInAigram={isInAigram}
         />
       )}
