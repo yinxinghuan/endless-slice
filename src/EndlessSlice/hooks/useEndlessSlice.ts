@@ -16,6 +16,13 @@ const GOLDEN_POINTS = 100;
 const TRAIL_LIFE_MS = 200;
 const FLASH_LIFE_MS = 260;
 const TIER_CALLOUT_LIFE_MS = 850;
+// Distance² (canvas px, internal width 1080) the pointer must travel from its
+// down-point before we treat the touch as a real slice. Filters out brief
+// pass-through pointer events from Aigram's TikTok-style list scrolling that
+// reach preloaded game iframes. Set high enough that a vertical list-scroll
+// passthrough won't trip ambient BGM — 200 internal-px ≈ 75 CSS-px on a
+// typical 400-wide viewport, larger than any incidental list-scroll travel.
+const SLICE_INTENT_DIST_SQ = 200 * 200;
 
 function darken(hex: string, amount: number): string {
   const m = /^#?([0-9a-f]{6})$/i.exec(hex);
@@ -131,8 +138,9 @@ export function useEndlessSlice() {
     setMissLabel('');
     setScreen('playing');
     screenRef.current = 'playing';
-    unlockAudio();
-    startAmbient();
+    // Audio is deferred to first pointerdown — games are preloaded in the
+    // Aigram list while the previous game is playing, so kicking off the
+    // ambient BGM here would leak sound from a game the user can't see yet.
   }, []);
 
   // Auto-start the round on mount (instant-play). StrictMode-safe via ref guard.
@@ -177,18 +185,15 @@ export function useEndlessSlice() {
   const onPointerDown = useCallback((clientX: number, clientY: number) => {
     unlockAudio();
     if (screenRef.current !== 'playing') return;
-    // First user touch — the real run begins (misses now count, clock advances).
-    if (!gameStartedRef.current) {
-      gameStartedRef.current = true;
-      setHasInteracted(true);
-    }
     const p = mapPointer(clientX, clientY);
     if (!p) return;
+    // A brief touch from list-scroll (Aigram preloads neighboring games) can
+    // reach this iframe. Don't begin the run, the BGM, or the swipe swoosh
+    // here — wait until pointermove proves real slice intent.
     swipingRef.current = true;
     sliceCountInSwipeRef.current = 0;
     setComboInSwipe(0);
     trailRef.current = [{ x: p.x, y: p.y, t: performance.now() }];
-    sfxSwipeStart();
   }, [mapPointer]);
 
   const onPointerMove = useCallback((clientX: number, clientY: number) => {
@@ -203,6 +208,18 @@ export function useEndlessSlice() {
     const dx = p.x - prev.x;
     const dy = p.y - prev.y;
     if (dx === 0 && dy === 0) return;
+    if (!gameStartedRef.current) {
+      // Promote to a real run only after the pointer has traveled past a
+      // threshold from its down-point (in canvas px, internal width 1080).
+      const down = trail[0];
+      const ddx = p.x - down.x;
+      const ddy = p.y - down.y;
+      if (ddx * ddx + ddy * ddy < SLICE_INTENT_DIST_SQ) return;
+      gameStartedRef.current = true;
+      setHasInteracted(true);
+      startAmbient();
+      sfxSwipeStart();
+    }
     // Velocity in px/sec, smoothed against last segment dt
     const dtMs = Math.max(1, now - prev.t);
     const vx = (dx / dtMs) * 1000;
@@ -612,6 +629,16 @@ export function useEndlessSlice() {
   }, [endRun]);
 
   useEffect(() => () => { stopAmbient(); }, []);
+
+  // Stop ambient if the tab goes hidden (e.g. user navigates away mid-run).
+  // The iframe's visibilityState mirrors the parent tab, so this fires on
+  // tab-switch but not on in-list scroll between games — that case is
+  // handled by the slice-intent threshold in onPointerMove above.
+  useEffect(() => {
+    const onVis = () => { if (document.visibilityState === 'hidden') stopAmbient(); };
+    document.addEventListener('visibilitychange', onVis);
+    return () => document.removeEventListener('visibilitychange', onVis);
+  }, []);
 
   // Clear tier label after callout life
   useEffect(() => {
